@@ -69,7 +69,11 @@
         const [signalData, setSignalData] = useState(null);
         
         const [secondsLeft, setSecondsLeft] = useState(60);
-        const [tab, setTab] = useState('sinais');
+        const [tab, setTab] = useState('sinais'); // 'treinamento', 'sinais', 'perfil'
+        
+        // Placar de Win e Loss
+        const [wins, setWins] = useState(18);
+        const [losses, setLosses] = useState(1);
 
         const checkIsMarketClosed = (type) => {
             const now = new Date();
@@ -84,7 +88,7 @@
         const isClosed = checkIsMarketClosed(selectedPair?.type);
 
         useEffect(() => {
-            if (step === 5) {
+            if (step === 5 && tab === 'sinais') {
                 const containerId = "tradingview_widget_container";
                 const container = document.getElementById(containerId);
                 if (container) {
@@ -95,7 +99,7 @@
                     script.async = true;
                     script.innerHTML = JSON.stringify({
                         "width": "100%",
-                        "height": "270",
+                        "height": "250",
                         "symbol": selectedPair.symbol || "BINANCE:BTCUSDT",
                         "interval": selectedTimeframe,
                         "timezone": "America/Sao_Paulo",
@@ -111,18 +115,18 @@
                     container.appendChild(script);
                 }
             }
-        }, [step, selectedPair, selectedTimeframe]);
+        }, [step, selectedPair, selectedTimeframe, tab]);
 
         useEffect(() => {
             let timer;
-            if (step === 5 && secondsLeft > 0) {
+            if (step === 5 && secondsLeft > 0 && tab === 'sinais') {
                 timer = setInterval(() => setSecondsLeft(prev => prev - 1), 1000);
-            } else if (secondsLeft === 0 && step === 5) {
+            } else if (secondsLeft === 0 && step === 5 && tab === 'sinais') {
                 const totalSecs = selectedTimeframe === '1' ? 60 : selectedTimeframe === '3' ? 180 : selectedTimeframe === '5' ? 300 : 900;
                 setSecondsLeft(totalSecs);
             }
             return () => clearInterval(timer);
-        }, [step, secondsLeft, selectedTimeframe]);
+        }, [step, secondsLeft, selectedTimeframe, tab]);
 
         const formatTime = (totalSeconds) => {
             const mins = Math.floor(totalSeconds / 60);
@@ -148,6 +152,11 @@
             }, 2000);
         };
 
+        const recordResult = (result) => {
+            if (result === 'win') setWins(w => w + 1);
+            if (result === 'loss') setLosses(l => l + 1);
+        };
+
         return (
             <div className="bg-[#111622] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden min-h-[740px] flex flex-col justify-between relative">
                 
@@ -165,178 +174,265 @@
                     </div>
                 </div>
 
-                {/* Conteúdo Dinâmico */}
+                {/* Conteúdo Dinâmico por Abas */}
                 <div className="p-3 flex-1 overflow-y-auto">
 
-                    {/* PASSO 0: Corretora */}
-                    {step === 0 && (
-                        <div>
-                            <h2 className="text-lg font-extrabold text-white mb-1">Escolha a Corretora</h2>
-                            <p className="text-xs text-slate-400 mb-3">Selecione onde opera seus sinais.</p>
-                            <div className="grid grid-cols-2 gap-2.5">
-                                {BROKERS.map((b) => (
-                                    <div 
-                                        key={b.id} 
-                                        onClick={() => { setSelectedBroker(b); setStep(1); }}
-                                        className="bg-[#182030] border border-slate-700 hover:border-emerald-500 p-3.5 rounded-xl text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-1.5 h-24"
-                                    >
-                                        <span className="text-2xl">{b.icon}</span>
-                                        <span className="font-bold text-xs text-white">{b.name}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* PASSO 1: Mercado */}
-                    {step === 1 && (
-                        <div>
-                            <div className="flex justify-between items-center mb-3">
-                                <h2 className="text-lg font-extrabold text-white">Escolha o Mercado</h2>
-                                <button onClick={() => setStep(0)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700">Voltar</button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2.5">
-                                {Object.keys(MARKETS).map((m) => (
-                                    <div 
-                                        key={m} 
-                                        onClick={() => { setSelectedMarket(m); setStep(2); }}
-                                        className="bg-[#182030] border border-slate-700 hover:border-emerald-500 p-3.5 rounded-xl cursor-pointer transition-all"
-                                    >
-                                        <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Disponível</span>
-                                        <h3 className="font-bold text-base text-white mt-1.5">{m}</h3>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* PASSO 2: Ativo/Par */}
-                    {step === 2 && (
-                        <div>
-                            <div className="flex justify-between items-center mb-2">
-                                <div>
-                                    <span className="text-[10px] text-emerald-400 font-bold uppercase">{selectedMarket}</span>
-                                    <h2 className="text-lg font-extrabold text-white">Selecionar Ativo</h2>
+                    {/* ABA TREINAMENTO */}
+                    {tab === 'treinamento' && (
+                        <div className="space-y-4">
+                            <h2 className="text-xl font-extrabold text-white">Manual de Instruções</h2>
+                            <p className="text-xs text-slate-400">Aprenda a utilizar o Profitology Bot para maximizar seus lucros em opções binárias.</p>
+                            
+                            <div className="space-y-3 text-xs">
+                                <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
+                                    <h3 className="font-bold text-emerald-400 text-sm mb-1">1. Escolha da Corretora e Ativo</h3>
+                                    <p className="text-slate-300 leading-relaxed">Selecione sua corretora (como Hezilex, Quotex ou IQ Option) e o mercado desejado. Verifique se o ativo está com o selo verde de mercado aberto.</p>
                                 </div>
-                                <button onClick={() => setStep(1)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700">Voltar</button>
-                            </div>
-
-                            <input 
-                                type="text" 
-                                placeholder="Pesquisar..." 
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-[#182030] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white mb-2.5 focus:outline-none focus:border-emerald-500"
-                            />
-
-                            <div className="grid grid-cols-2 gap-2 max-h-[320px] overflow-y-auto">
-                                {(MARKETS[selectedMarket] || []).filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map((pair, idx) => (
-                                    <div 
-                                        key={idx} 
-                                        onClick={() => { setSelectedPair(pair); setStep(3); }}
-                                        className="bg-[#182030] p-3 rounded-xl border border-slate-800 hover:border-emerald-500 cursor-pointer flex justify-between items-center"
-                                    >
-                                        <span className="text-xs font-bold text-slate-200">{pair.name}</span>
-                                        <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
-                                            {pair.payout}
-                                        </span>
-                                    </div>
-                                ))}
+                                <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
+                                    <h3 className="font-bold text-emerald-400 text-sm mb-1">2. Tempo de Expiração</h3>
+                                    <p className="text-slate-300 leading-relaxed">Escolha entre 1, 3, 5 ou 15 minutos. O bot fará a análise completa do gráfico de velas do TradingView para este período.</p>
+                                </div>
+                                <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
+                                    <h3 className="font-bold text-emerald-400 text-sm mb-1">3. Momento da Entrada (Timing)</h3>
+                                    <p className="text-slate-300 leading-relaxed">Quando o sinal de <b>COMPRA (CALL)</b> ou <b>VENDA (PUT)</b> for gerado, observe o relógio de contagem regressiva. Se o sinal sair no início da vela, entre imediatamente. Se sair no final, aguarde a abertura da próxima vela.</p>
+                                </div>
+                                <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
+                                    <h3 className="font-bold text-emerald-400 text-sm mb-1">4. Gerenciamento de Risco</h3>
+                                    <p className="text-slate-300 leading-relaxed">Nunca arrisque mais do que 1% a 2% do seu capital total por operação. Utilize o placar de Win/Loss para acompanhar sua consistência diária.</p>
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {/* PASSO 3: Tempo */}
-                    {step === 3 && (
+                    {/* ABA PERFIL */}
+                    {tab === 'perfil' && (
+                        <div className="space-y-4">
+                            <h2 className="text-xl font-extrabold text-white">Perfil do Trader</h2>
+                            <p className="text-xs text-slate-400">Gerencie suas configurações e status de conexão.</p>
+
+                            <div className="bg-[#182030] p-4 rounded-xl border border-slate-800 space-y-3">
+                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
+                                    <span className="text-xs text-slate-400">Status da Conta:</span>
+                                    <span className="text-xs font-bold text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-500/30">VIP PRO ATIVO</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
+                                    <span className="text-xs text-slate-400">Corretora Vinculada:</span>
+                                    <span className="text-xs font-bold text-white">{selectedBroker.icon} {selectedBroker.name}</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
+                                    <span className="text-xs text-slate-400">ID do Usuário:</span>
+                                    <span className="text-xs font-mono text-cyan-400">#PRFT-89240</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs text-slate-400">Servidor API:</span>
+                                    <span className="text-xs text-emerald-400">Conectado (Baixa Latência)</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 text-center">
+                                <p className="text-xs text-slate-400 mb-2">Dúvidas ou suporte técnico?</p>
+                                <span className="text-xs font-bold text-emerald-400 cursor-pointer">Falar com o Suporte Oficial</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ABA SINAIS (Fluxo Principal) */}
+                    {tab === 'sinais' && (
                         <div>
-                            <div className="flex justify-between items-center mb-3">
+                            {/* PASSO 0: Corretora */}
+                            {step === 0 && (
                                 <div>
-                                    <span className="text-[10px] text-emerald-400 font-bold uppercase">{selectedPair?.name}</span>
-                                    <h2 className="text-lg font-extrabold text-white">Tempo de Expiração</h2>
-                                </div>
-                                <button onClick={() => setStep(2)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700">Voltar</button>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2.5 mt-2">
-                                {[
-                                    { label: '1 MIN', val: '1' },
-                                    { label: '3 MIN', val: '3' },
-                                    { label: '5 MIN', val: '5' },
-                                    { label: '15 MIN', val: '15' }
-                                ].map((tf, i) => (
-                                    <button 
-                                        key={i} 
-                                        onClick={() => generateSignal(tf.val)}
-                                        className="bg-[#182030] border border-slate-700 hover:border-emerald-500 p-5 rounded-xl text-center cursor-pointer transition-all hover:scale-[1.02]"
-                                    >
-                                        <span className="text-2xl font-extrabold text-emerald-400 block">{tf.label.split(' ')[0]}</span>
-                                        <span className="text-[10px] font-bold text-slate-400">MINUTOS</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* PASSO 4: Carregando */}
-                    {step === 4 && (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="w-20 h-20 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4 flex items-center justify-center"></div>
-                            <h2 className="text-lg font-extrabold text-white mb-1">Processando Análise</h2>
-                            <p className="text-xs text-slate-400">Varredura de velas TradingView...</p>
-                        </div>
-                    )}
-
-                    {/* PASSO 5: Gráfico Real do TradingView + Alerta de Mercado Fechado */}
-                    {step === 5 && (
-                        <div className="space-y-2.5">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <span className="text-xs text-slate-300 font-bold block">{selectedPair?.name}</span>
-                                    {isClosed ? (
-                                        <span className="text-[10px] font-bold text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-500/30">🔴 MERCADO FECHADO (Fim de Semana)</span>
-                                    ) : (
-                                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">🟢 MERCADO ABERTO (Live)</span>
-                                    )}
-                                </div>
-                                <button onClick={() => setStep(2)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700 hover:bg-slate-700">Trocar Ativo</button>
-                            </div>
-
-                            {/* WIDGET OFICIAL DO TRADINGVIEW */}
-                            <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#121824] h-[270px] relative">
-                                <div id="tradingview_widget_container" className="w-full h-full"></div>
-                            </div>
-
-                            {/* Relógio com Contagem Regressiva Brasileira */}
-                            <div className="bg-[#182030] border border-slate-800 px-3 py-2 rounded-xl flex justify-between items-center">
-                                <span className="text-xs text-slate-400 font-medium">Fechamento da Vela atual:</span>
-                                <span className="text-sm font-mono font-extrabold text-cyan-400">
-                                    {formatTime(secondsLeft)}
-                                </span>
-                            </div>
-
-                            {/* Alerta de Sinal Gerado */}
-                            {signalData && (
-                                <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-xl flex justify-between items-center">
-                                    <div>
-                                        <span className="text-[10px] text-slate-400 block font-bold">RECOMENDAÇÃO BOT</span>
-                                        <span className={`text-sm font-extrabold ${signalData.textColor}`}>{signalData.text}</span>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="text-[10px] text-slate-400 block font-bold">ASSERTIVIDADE</span>
-                                        <span className="text-xs font-extrabold text-emerald-400">{signalData.accuracy}</span>
+                                    <h2 className="text-lg font-extrabold text-white mb-1">Escolha a Corretora</h2>
+                                    <p className="text-xs text-slate-400 mb-3">Selecione onde opera seus sinais.</p>
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        {BROKERS.map((b) => (
+                                            <div 
+                                                key={b.id} 
+                                                onClick={() => { setSelectedBroker(b); setStep(1); }}
+                                                className="bg-[#182030] border border-slate-700 hover:border-emerald-500 p-3.5 rounded-xl text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-1.5 h-24"
+                                            >
+                                                <span className="text-2xl">{b.icon}</span>
+                                                <span className="font-bold text-xs text-white">{b.name}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* Botões de Ação */}
-                            <div className="grid grid-cols-2 gap-2 pt-0.5">
-                                <button onClick={() => alert("Ordem de Compra enviada!")} className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-lg">
-                                    Comprar ▲
-                                </button>
-                                <button onClick={() => alert("Ordem de Venda enviada!")} className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-lg">
-                                    Vender ▼
-                                </button>
-                            </div>
+                            {/* PASSO 1: Mercado */}
+                            {step === 1 && (
+                                <div>
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h2 className="text-lg font-extrabold text-white">Escolha o Mercado</h2>
+                                        <button onClick={() => setStep(0)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700">Voltar</button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2.5">
+                                        {Object.keys(MARKETS).map((m) => (
+                                            <div 
+                                                key={m} 
+                                                onClick={() => { setSelectedMarket(m); setStep(2); }}
+                                                className="bg-[#182030] border border-slate-700 hover:border-emerald-500 p-3.5 rounded-xl cursor-pointer transition-all"
+                                            >
+                                                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Disponível</span>
+                                                <h3 className="font-bold text-base text-white mt-1.5">{m}</h3>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* PASSO 2: Ativo/Par */}
+                            {step === 2 && (
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <div>
+                                            <span className="text-[10px] text-emerald-400 font-bold uppercase">{selectedMarket}</span>
+                                            <h2 className="text-lg font-extrabold text-white">Selecionar Ativo</h2>
+                                        </div>
+                                        <button onClick={() => setStep(1)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700">Voltar</button>
+                                    </div>
+
+                                    <input 
+                                        type="text" 
+                                        placeholder="Pesquisar..." 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full bg-[#182030] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white mb-2.5 focus:outline-none focus:border-emerald-500"
+                                    />
+
+                                    <div className="grid grid-cols-2 gap-2 max-h-[320px] overflow-y-auto">
+                                        {(MARKETS[selectedMarket] || []).filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map((pair, idx) => (
+                                            <div 
+                                                key={idx} 
+                                                onClick={() => { setSelectedPair(pair); setStep(3); }}
+                                                className="bg-[#182030] p-3 rounded-xl border border-slate-800 hover:border-emerald-500 cursor-pointer flex justify-between items-center"
+                                            >
+                                                <span className="text-xs font-bold text-slate-200">{pair.name}</span>
+                                                <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
+                                                    {pair.payout}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* PASSO 3: Tempo */}
+                            {step === 3 && (
+                                <div>
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div>
+                                            <span className="text-[10px] text-emerald-400 font-bold uppercase">{selectedPair?.name}</span>
+                                            <h2 className="text-lg font-extrabold text-white">Tempo de Expiração</h2>
+                                        </div>
+                                        <button onClick={() => setStep(2)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700">Voltar</button>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2.5 mt-2">
+                                        {[
+                                            { label: '1 MIN', val: '1' },
+                                            { label: '3 MIN', val: '3' },
+                                            { label: '5 MIN', val: '5' },
+                                            { label: '15 MIN', val: '15' }
+                                        ].map((tf, i) => (
+                                            <button 
+                                                key={i} 
+                                                onClick={() => generateSignal(tf.val)}
+                                                className="bg-[#182030] border border-slate-700 hover:border-emerald-500 p-5 rounded-xl text-center cursor-pointer transition-all hover:scale-[1.02]"
+                                            >
+                                                <span className="text-2xl font-extrabold text-emerald-400 block">{tf.label.split(' ')[0]}</span>
+                                                <span className="text-[10px] font-bold text-slate-400">MINUTOS</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* PASSO 4: Carregando */}
+                            {step === 4 && (
+                                <div className="flex flex-col items-center justify-center py-16 text-center">
+                                    <div className="w-20 h-20 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4 flex items-center justify-center"></div>
+                                    <h2 className="text-lg font-extrabold text-white mb-1">Processando Análise</h2>
+                                    <p className="text-xs text-slate-400">Varredura de velas TradingView...</p>
+                                </div>
+                            )}
+
+                            {/* PASSO 5: Gráfico Real do TradingView + Placar Win/Loss */}
+                            {step === 5 && (
+                                <div className="space-y-2.5">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <span className="text-xs text-slate-300 font-bold block">{selectedPair?.name}</span>
+                                            {isClosed ? (
+                                                <span className="text-[10px] font-bold text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-500/30">🔴 MERCADO FECHADO</span>
+                                            ) : (
+                                                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">🟢 MERCADO ABERTO (Live)</span>
+                                            )}
+                                        </div>
+                                        <button onClick={() => setStep(2)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700 hover:bg-slate-700">Trocar Ativo</button>
+                                    </div>
+
+                                    {/* WIDGET DO TRADINGVIEW */}
+                                    <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#121824] h-[250px] relative">
+                                        <div id="tradingview_widget_container" className="w-full h-full"></div>
+                                    </div>
+
+                                    {/* Relógio com Contagem Regressiva Brasileira */}
+                                    <div className="bg-[#182030] border border-slate-800 px-3 py-2 rounded-xl flex justify-between items-center">
+                                        <span className="text-xs text-slate-400 font-medium">Fechamento da Vela atual:</span>
+                                        <span className="text-sm font-mono font-extrabold text-cyan-400">
+                                            {formatTime(secondsLeft)}
+                                        </span>
+                                    </div>
+
+                                    {/* Alerta de Sinal Gerado */}
+                                    {signalData && (
+                                        <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-xl flex justify-between items-center">
+                                            <div>
+                                                <span className="text-[10px] text-slate-400 block font-bold">RECOMENDAÇÃO BOT</span>
+                                                <span className={`text-sm font-extrabold ${signalData.textColor}`}>{signalData.text}</span>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-[10px] text-slate-400 block font-bold">ASSERTIVIDADE</span>
+                                                <span className="text-xs font-extrabold text-emerald-400">{signalData.accuracy}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* PLACAR DE WIN E LOSS (Com botões para registrar resultados) */}
+                                    <div className="bg-[#182030] border border-slate-800 p-2.5 rounded-xl flex justify-between items-center">
+                                        <div className="flex space-x-4 items-center">
+                                            <div>
+                                                <span className="text-[10px] text-slate-400 block font-bold">WIN (V)</span>
+                                                <span className="text-base font-extrabold text-emerald-400">{wins}</span>
+                                            </div>
+                                            <div className="h-6 w-[1px] bg-slate-700"></div>
+                                            <div>
+                                                <span className="text-[10px] text-slate-400 block font-bold">LOSS (D)</span>
+                                                <span className="text-base font-extrabold text-rose-400">{losses}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex space-x-1.5">
+                                            <button onClick={() => recordResult('win')} className="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg">
+                                                + Win
+                                            </button>
+                                            <button onClick={() => recordResult('loss')} className="bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg">
+                                                + Loss
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Botões de Ação */}
+                                    <div className="grid grid-cols-2 gap-2 pt-0.5">
+                                        <button onClick={() => alert("Ordem de Compra enviada!")} className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-lg">
+                                            Comprar ▲
+                                        </button>
+                                        <button onClick={() => alert("Ordem de Venda enviada!")} className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-lg">
+                                            Vender ▼
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -347,7 +443,7 @@
                         <span>📖</span>
                         <span>Treinamento</span>
                     </button>
-                    <button onClick={() => { setTab('sinais'); setStep(0); }} className="bg-emerald-500 hover:bg-emerald-400 text-black py-2 rounded-xl flex flex-col items-center justify-center text-xs font-extrabold glow-green">
+                    <button onClick={() => { setTab('sinais'); setStep(0); }} className={`py-2 rounded-xl flex flex-col items-center justify-center text-xs font-extrabold ${tab === 'sinais' ? 'bg-emerald-500 text-black glow-green' : 'text-slate-500 bg-slate-900'}`}>
                         <span>📈</span>
                         <span>Sinais</span>
                     </button>
