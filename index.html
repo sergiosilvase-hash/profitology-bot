@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Profitology Bot - Professional Trading</title>
+    <title>Profitology Bot - Dashboard & Signals</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -52,17 +52,16 @@
     };
 
     function App() {
+        const [tab, setTab] = useState('dashboard'); // 'dashboard', 'sinais', 'treinamento', 'perfil'
         const [step, setStep] = useState(0); 
         const [selectedBroker, setSelectedBroker] = useState(BROKERS[0]);
         const [selectedMarket, setSelectedMarket] = useState('HEZILEX_ATIVOS');
         const [selectedPair, setSelectedPair] = useState(MARKETS.HEZILEX_ATIVOS[0]);
         const [selectedTimeframe, setSelectedTimeframe] = useState('1'); 
-        const [searchQuery, setSearchQuery] = useState('');
         const [signalData, setSignalData] = useState(null);
+        const [secondsLeft, setSecondsLeft] = useState(15);
         
-        const [secondsLeft, setSecondsLeft] = useState(60);
-        const [tab, setTab] = useState('sinais');
-        
+        // Dados do Dashboard de Placar Geral
         const [stats, setStats] = useState({
             day: { wins: 0, losses: 0 },
             week: { wins: 0, losses: 0 },
@@ -81,7 +80,7 @@
                     script.async = true;
                     script.innerHTML = JSON.stringify({
                         "width": "100%",
-                        "height": "200",
+                        "height": "220",
                         "symbol": selectedPair.symbol || "BINANCE:BTCUSDT",
                         "interval": selectedTimeframe,
                         "timezone": "America/Sao_Paulo",
@@ -119,7 +118,8 @@
                 const isBuy = Math.random() > 0.45;
                 setSignalData({
                     text: isBuy ? 'COMPRAR (CALL)' : 'VENDER (PUT)',
-                    textColor: isBuy ? 'text-emerald-400' : 'text-red-400'
+                    textColor: isBuy ? 'text-emerald-400' : 'text-red-400',
+                    accuracy: '98%'
                 });
                 setStep(5);
             }, 1200);
@@ -135,48 +135,109 @@
             }));
         };
 
+        const calcRate = (w, l) => {
+            const total = w + l;
+            if (total === 0) return "0%";
+            return ((w / total) * 100).toFixed(0) + "%";
+        };
+
         return (
-            <div className="bg-[#111622] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden w-full max-w-md min-h-[720px] flex flex-col justify-between relative">
+            <div className="bg-[#0b0f17] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden w-full max-w-md min-h-[720px] flex flex-col justify-between relative">
                 
-                {/* Header */}
-                <div className="bg-[#161c2e] p-3 flex justify-between items-center border-b border-slate-800">
+                {/* Header Superior */}
+                <div className="bg-[#121824] p-3 flex justify-between items-center border-b border-slate-800">
                     <div className="flex items-center space-x-2">
                         <div className="w-5 h-5 bg-emerald-500 rounded flex items-center justify-center font-bold text-black text-xs">▲</div>
-                        <span className="font-extrabold text-base text-white">PROFITOLOGY</span>
+                        <span className="font-extrabold text-base text-white tracking-wider">PROFITOLOGY</span>
                     </div>
-                    <span className="bg-slate-800 text-xs text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700">
-                        {selectedBroker.icon} {selectedBroker.name}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                        <span className="bg-slate-800 text-xs text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700 flex items-center gap-1">
+                            {selectedBroker.icon} {selectedBroker.name}
+                        </span>
+                        <span className="bg-slate-800 text-xs text-slate-300 px-2.5 py-1 rounded-lg font-semibold border border-slate-700">🇧🇷 PT</span>
+                    </div>
                 </div>
 
-                {/* Conteúdo */}
+                {/* Conteúdo Principal */}
                 <div className="p-3 flex-1 overflow-y-auto">
 
-                    {tab === 'treinamento' && (
-                        <div className="space-y-3 text-xs">
-                            <h2 className="text-lg font-extrabold text-white">📖 Manual de Instruções</h2>
-                            <div className="bg-[#182030] p-3 rounded-xl border border-slate-800 space-y-1">
-                                <h3 className="font-bold text-emerald-400 text-sm">1. Operações</h3>
-                                <p className="text-slate-300">Selecione sua corretora, escolha o ativo desejado e aguarde a leitura das velas do TradingView.</p>
+                    {/* TELA 1: DASHBOARD PRINCIPAL DE WIN / LOSS */}
+                    {tab === 'dashboard' && (
+                        <div className="space-y-4">
+                            <div>
+                                <h2 className="text-lg font-extrabold text-white">Dashboard Geral de Performance</h2>
+                                <p className="text-xs text-slate-400">Acompanhamento consolidado de Win e Loss por período.</p>
                             </div>
-                            <div className="bg-[#182030] p-3 rounded-xl border border-slate-800 space-y-1">
-                                <h3 className="font-bold text-emerald-400 text-sm">2. Placar Geral</h3>
-                                <p className="text-slate-300">Utilize os botões + e - no painel inferior de sinais para atualizar manualmente as suas vitórias e derrotas acumuladas.</p>
+
+                            {/* Resumo Consolidado do Dia */}
+                            <div className="bg-[#141b2d] p-4 rounded-xl border border-slate-800 space-y-3">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Resultado de Hoje</span>
+                                <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div className="bg-emerald-950/40 border border-emerald-500/30 p-2.5 rounded-xl">
+                                        <span className="text-[10px] text-emerald-400 font-bold block uppercase">Vitórias (WIN)</span>
+                                        <span className="text-xl font-extrabold text-emerald-400">{stats.day.wins}</span>
+                                    </div>
+                                    <div className="bg-rose-950/40 border border-rose-500/30 p-2.5 rounded-xl">
+                                        <span className="text-[10px] text-rose-400 font-bold block uppercase">Derrotas (LOSS)</span>
+                                        <span className="text-xl font-extrabold text-rose-400">{stats.day.losses}</span>
+                                    </div>
+                                    <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-xl">
+                                        <span className="text-[10px] text-cyan-400 font-bold block uppercase">Assertividade</span>
+                                        <span className="text-xl font-extrabold text-cyan-400">{calcRate(stats.day.wins, stats.day.losses)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Controle Manual e Linha do Tempo */}
+                            <div className="bg-[#141b2d] p-3.5 rounded-xl border border-slate-800 space-y-3">
+                                <span className="text-xs font-bold text-slate-300 block border-b border-slate-800 pb-2">Gerenciar Placar por Período</span>
+
+                                {/* HOJE */}
+                                <div className="flex justify-between items-center bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                                    <div>
+                                        <span className="text-xs font-bold text-white block">Hoje</span>
+                                        <span className="text-[10px] text-slate-400">{stats.day.wins} Wins • {stats.day.losses} Losses</span>
+                                    </div>
+                                    <div className="flex space-x-1">
+                                        <button onClick={() => updateScore('day', 'wins', 1)} className="bg-emerald-600 px-2 py-1 rounded text-xs font-bold text-white">+ Win</button>
+                                        <button onClick={() => updateScore('day', 'wins', -1)} className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-400">-</button>
+                                        <button onClick={() => updateScore('day', 'losses', 1)} className="bg-rose-600 px-2 py-1 rounded text-xs font-bold text-white">+ Loss</button>
+                                        <button onClick={() => updateScore('day', 'losses', -1)} className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-400">-</button>
+                                    </div>
+                                </div>
+
+                                {/* SEMANA */}
+                                <div className="flex justify-between items-center bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                                    <div>
+                                        <span className="text-xs font-bold text-white block">Esta Semana</span>
+                                        <span className="text-[10px] text-slate-400">{stats.week.wins} Wins • {stats.week.losses} Losses</span>
+                                    </div>
+                                    <div className="flex space-x-1">
+                                        <button onClick={() => updateScore('week', 'wins', 1)} className="bg-emerald-600 px-2 py-1 rounded text-xs font-bold text-white">+ Win</button>
+                                        <button onClick={() => updateScore('week', 'wins', -1)} className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-400">-</button>
+                                        <button onClick={() => updateScore('week', 'losses', 1)} className="bg-rose-600 px-2 py-1 rounded text-xs font-bold text-white">+ Loss</button>
+                                        <button onClick={() => updateScore('week', 'losses', -1)} className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-400">-</button>
+                                    </div>
+                                </div>
+
+                                {/* MÊS */}
+                                <div className="flex justify-between items-center bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                                    <div>
+                                        <span className="text-xs font-bold text-white block">Este Mês</span>
+                                        <span className="text-[10px] text-slate-400">{stats.month.wins} Wins • {stats.month.losses} Losses</span>
+                                    </div>
+                                    <div className="flex space-x-1">
+                                        <button onClick={() => updateScore('month', 'wins', 1)} className="bg-emerald-600 px-2 py-1 rounded text-xs font-bold text-white">+ Win</button>
+                                        <button onClick={() => updateScore('month', 'wins', -1)} className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-400">-</button>
+                                        <button onClick={() => updateScore('month', 'losses', 1)} className="bg-rose-600 px-2 py-1 rounded text-xs font-bold text-white">+ Loss</button>
+                                        <button onClick={() => updateScore('month', 'losses', -1)} className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-400">-</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {tab === 'perfil' && (
-                        <div className="space-y-3">
-                            <h2 className="text-lg font-extrabold text-white">Perfil do Trader</h2>
-                            <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800 text-xs space-y-2">
-                                <div className="flex justify-between"><span className="text-slate-400">Status:</span><span className="text-emerald-400 font-bold">VIP PRO</span></div>
-                                <div className="flex justify-between"><span className="text-slate-400">Corretora:</span><span className="text-white font-bold">{selectedBroker.name}</span></div>
-                                <div className="flex justify-between"><span className="text-slate-400">ID:</span><span className="text-cyan-400 font-mono">#PRFT-9942</span></div>
-                            </div>
-                        </div>
-                    )}
-
+                    {/* TELA 2: SINAIS DE TRADING (LAYOUT FIEL À FOTO DE REFERÊNCIA) */}
                     {tab === 'sinais' && (
                         <div>
                             {step === 0 && (
@@ -237,68 +298,100 @@
                             {step === 4 && (
                                 <div className="flex flex-col items-center justify-center py-16 text-center">
                                     <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-3"></div>
-                                    <p className="text-xs text-slate-400">Carregando TradingView...</p>
+                                    <p className="text-xs text-slate-400">Analisando Mercado...</p>
                                 </div>
                             )}
 
                             {step === 5 && signalData && (
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center"><span className="text-xs text-slate-300 font-bold">{selectedPair?.name}</span><button onClick={() => setStep(2)} className="text-xs bg-slate-800 px-2 py-1 rounded">Trocar</button></div>
+                                <div className="space-y-3">
+                                    {/* Topo do Ativo e Seleção */}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs text-slate-300 font-bold">{selectedPair?.name} • {selectedTimeframe} MIN</span>
+                                        <button onClick={() => setStep(2)} className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-slate-300 border border-slate-700 font-medium">Trocar Ativo</button>
+                                    </div>
                                     
-                                    <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#121824] h-[190px]"><div id="tradingview_widget_container" className="w-full h-full"></div></div>
+                                    {/* Gráfico do TradingView */}
+                                    <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#121824] h-[220px]">
+                                        <div id="tradingview_widget_container" className="w-full h-full"></div>
+                                    </div>
                                     
-                                    <div className="bg-[#182030] px-3 py-1 rounded-xl flex justify-between items-center text-xs"><span className="text-slate-400">Fechamento:</span><span className="font-mono font-bold text-cyan-400">{formatTime(secondsLeft)}</span></div>
+                                    {/* Timer do Fechamento da Vela */}
+                                    <div className="bg-[#141b2d] px-3.5 py-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                                        <span className="text-xs text-slate-300 font-medium">Fechamento da Vela atual:</span>
+                                        <span className="text-sm font-mono font-bold text-cyan-400">{formatTime(secondsLeft)}</span>
+                                    </div>
                                     
-                                    <div className="bg-slate-900 p-2 rounded-xl text-center border border-slate-800"><span className={`text-sm font-extrabold ${signalData.textColor}`}>{signalData.text}</span></div>
-                                    
-                                    {/* Placar Geral Unificado */}
-                                    <div className="bg-[#182030] p-2.5 rounded-xl border border-slate-800 space-y-1.5">
-                                        <div className="text-[10px] font-bold text-slate-300 text-center uppercase">Placar Geral (Soma de Todos os Ativos)</div>
-                                        <div className="grid grid-cols-3 gap-1 text-center">
-                                            <div className="bg-slate-900 p-1 rounded">
-                                                <span className="text-[8px] text-slate-400 block font-bold">HOJE</span>
-                                                <span className="text-[11px] font-extrabold text-emerald-400">{stats.day.wins}W</span>/<span className="text-[11px] font-extrabold text-rose-400">{stats.day.losses}L</span>
-                                                <div className="flex justify-center space-x-0.5 mt-0.5">
-                                                    <button onClick={() => updateScore('day', 'wins', 1)} className="bg-emerald-600 px-1 rounded text-[9px] text-white">+</button>
-                                                    <button onClick={() => updateScore('day', 'wins', -1)} className="bg-slate-800 px-1 rounded text-[9px] text-slate-300">-</button>
-                                                    <button onClick={() => updateScore('day', 'losses', 1)} className="bg-rose-600 px-1 rounded text-[9px] text-white">+</button>
-                                                    <button onClick={() => updateScore('day', 'losses', -1)} className="bg-slate-800 px-1 rounded text-[9px] text-slate-300">-</button>
-                                                </div>
+                                    {/* Recomendação do Bot */}
+                                    {signalData && (
+                                        <div className="bg-[#141b2d] p-3.5 rounded-xl border border-slate-800 flex justify-between items-center">
+                                            <div>
+                                                <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">RECOMENDAÇÃO BOT</span>
+                                                <span className={`text-sm font-extrabold ${signalData.textColor}`}>{signalData.text}</span>
                                             </div>
-                                            <div className="bg-slate-900 p-1 rounded">
-                                                <span className="text-[8px] text-slate-400 block font-bold">SEMANA</span>
-                                                <span className="text-[11px] font-extrabold text-emerald-400">{stats.week.wins}W</span>/<span className="text-[11px] font-extrabold text-rose-400">{stats.week.losses}L</span>
-                                                <div className="flex justify-center space-x-0.5 mt-0.5">
-                                                    <button onClick={() => updateScore('week', 'wins', 1)} className="bg-emerald-600 px-1 rounded text-[9px] text-white">+</button>
-                                                    <button onClick={() => updateScore('week', 'wins', -1)} className="bg-slate-800 px-1 rounded text-[9px] text-slate-300">-</button>
-                                                    <button onClick={() => updateScore('week', 'losses', 1)} className="bg-rose-600 px-1 rounded text-[9px] text-white">+</button>
-                                                    <button onClick={() => updateScore('week', 'losses', -1)} className="bg-slate-800 px-1 rounded text-[9px] text-slate-300">-</button>
-                                                </div>
-                                            </div>
-                                            <div className="bg-slate-900 p-1 rounded">
-                                                <span className="text-[8px] text-slate-400 block font-bold">MÊS</span>
-                                                <span className="text-[11px] font-extrabold text-emerald-400">{stats.month.wins}W</span>/<span className="text-[11px] font-extrabold text-rose-400">{stats.month.losses}L</span>
-                                                <div className="flex justify-center space-x-0.5 mt-0.5">
-                                                    <button onClick={() => updateScore('month', 'wins', 1)} className="bg-emerald-600 px-1 rounded text-[9px] text-white">+</button>
-                                                    <button onClick={() => updateScore('month', 'wins', -1)} className="bg-slate-800 px-1 rounded text-[9px] text-slate-300">-</button>
-                                                    <button onClick={() => updateScore('month', 'losses', 1)} className="bg-rose-600 px-1 rounded text-[9px] text-white">+</button>
-                                                    <button onClick={() => updateScore('month', 'losses', -1)} className="bg-slate-800 px-1 rounded text-[9px] text-slate-300">-</button>
-                                                </div>
+                                            <div className="text-right">
+                                                <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">ASSERTIVIDADE</span>
+                                                <span className="text-sm font-extrabold text-emerald-400">{signalData.accuracy}</span>
                                             </div>
                                         </div>
+                                    )}
+
+                                    {/* Botões de Ação Comprar e Vender */}
+                                    <div className="grid grid-cols-2 gap-3 pt-1">
+                                        <button onClick={() => alert("Ordem de Compra (Call) registrada!")} className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3 rounded-xl text-sm shadow-lg shadow-emerald-950/50 transition-all flex items-center justify-center gap-1">
+                                            Comprar ▲
+                                        </button>
+                                        <button onClick={() => alert("Ordem de Venda (Put) registrada!")} className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-3 rounded-xl text-sm shadow-lg shadow-rose-950/50 transition-all flex items-center justify-center gap-1">
+                                            Vender ▼
+                                        </button>
                                     </div>
                                 </div>
                             )}
                         </div>
                     )}
+
+                    {/* TELA 3: TREINAMENTO */}
+                    {tab === 'treinamento' && (
+                        <div className="space-y-3 text-xs">
+                            <h2 className="text-lg font-extrabold text-white">📖 Manual de Treinamento</h2>
+                            <div className="bg-[#182030] p-3 rounded-xl border border-slate-800 space-y-1">
+                                <h3 className="font-bold text-emerald-400 text-sm">1. Gerenciamento do Placar</h3>
+                                <p className="text-slate-300">Acesse a aba Dashboard para visualizar o histórico de acertos e controlar o resultado total das operações diárias, semanais e mensais.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TELA 4: PERFIL */}
+                    {tab === 'perfil' && (
+                        <div className="space-y-3">
+                            <h2 className="text-lg font-extrabold text-white">Perfil do Trader</h2>
+                            <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800 text-xs space-y-2">
+                                <div className="flex justify-between"><span className="text-slate-400">Status:</span><span className="text-emerald-400 font-bold">VIP PRO</span></div>
+                                <div className="flex justify-between"><span className="text-slate-400">Corretora:</span><span className="text-white font-bold">{selectedBroker.name}</span></div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Navegação Inferior */}
-                <div className="bg-[#161c2e] border-t border-slate-800 p-2 grid grid-cols-3 gap-2">
-                    <button onClick={() => setTab('treinamento')} className={`py-1.5 rounded-xl text-xs font-bold ${tab === 'treinamento' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}>📖 Treino</button>
-                    <button onClick={() => { setTab('sinais'); setStep(0); }} className={`py-1.5 rounded-xl text-xs font-extrabold ${tab === 'sinais' ? 'bg-emerald-500 text-black' : 'text-slate-500 bg-slate-900'}`}>📈 Sinais</button>
-                    <button onClick={() => setTab('perfil')} className={`py-1.5 rounded-xl text-xs font-bold ${tab === 'perfil' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}>👤 Perfil</button>
+                {/* NAVEGAÇÃO INFERIOR */}
+                <div className="bg-[#121824] border-t border-slate-800 p-2 grid grid-cols-4 gap-1 text-center">
+                    <button onClick={() => setTab('dashboard')} className={`py-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-0.5 ${tab === 'dashboard' ? 'bg-slate-800 text-emerald-400 border border-slate-700' : 'text-slate-500'}`}>
+                        <span>📊</span>
+                        <span className="text-[10px]">Dashboard</span>
+                    </button>
+                    <button onClick={() => { setTab('sinais'); setStep(0); }} className={`py-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-0.5 ${tab === 'sinais' ? 'bg-emerald-500 text-black font-extrabold glow-green' : 'text-slate-500'}`}>
+                        <span>📈</span>
+                        <span className="text-[10px]">Sinais</span>
+                    </button>
+                    <button onClick={() => setTab('treinamento')} className={`py-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-0.5 ${tab === 'treinamento' ? 'bg-slate-800 text-white border border-slate-700' : 'text-slate-500'}`}>
+                        <span>📖</span>
+                        <span className="text-[10px]">Treino</span>
+                    </button>
+                    <button onClick={() => setTab('perfil')} className={`py-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-0.5 ${tab === 'perfil' ? 'bg-slate-800 text-white border border-slate-700' : 'text-slate-500'}`}>
+                        <span>👤</span>
+                        <span className="text-[10px]">Perfil</span>
+                    </button>
                 </div>
+
             </div>
         );
     }
