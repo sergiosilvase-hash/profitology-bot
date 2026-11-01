@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Profitology Bot - Live Real-Time</title>
+    <title>Profitology Bot - Professional Trading</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -29,38 +29,40 @@
     ];
 
     const MARKETS = {
+        CRYPTO: [
+            { name: "BITCOIN (BTC/USDT)", symbol: "BINANCE:BTCUSDT", payout: "98%", type: "crypto" },
+            { name: "ETHEREUM (ETH/USDT)", symbol: "BINANCE:ETHUSDT", payout: "95%", type: "crypto" },
+            { name: "SOLANA (SOL/USDT)", symbol: "BINANCE:SOLUSDT", payout: "92%", type: "crypto" }
+        ],
         OTC: [
-            { name: "EUR/USD OTC", symbol: "FX:EURUSD", payout: "95%" },
-            { name: "EUR/GBP OTC", symbol: "FX:EURGBP", payout: "91%" },
-            { name: "GBP/USD OTC", symbol: "FX:GBPUSD", payout: "89%" },
-            { name: "USD/JPY OTC", symbol: "FX:USDJPY", payout: "91%" },
-            { name: "USD/CHF OTC", symbol: "FX:USDCHF", payout: "89%" },
-            { name: "AUD/USD OTC", symbol: "FX:AUDUSD", payout: "74%" }
+            { name: "EUR/USD OTC", symbol: "FX:EURUSD", payout: "95%", type: "otc" },
+            { name: "EUR/GBP OTC", symbol: "FX:EURGBP", payout: "91%", type: "otc" },
+            { name: "GBP/USD OTC", symbol: "FX:GBPUSD", payout: "89%", type: "otc" },
+            { name: "USD/JPY OTC", symbol: "FX:USDJPY", payout: "91%", type: "otc" },
+            { name: "USD/CHF OTC", symbol: "FX:USDCHF", payout: "89%", type: "otc" },
+            { name: "AUD/USD OTC", symbol: "FX:AUDUSD", payout: "74%", type: "otc" }
         ],
         FOREX: [
-            { name: "EUR/USD", symbol: "FX:EURUSD", payout: "82%" },
-            { name: "GBP/USD", symbol: "FX:GBPUSD", payout: "80%" },
-            { name: "EUR/GBP", symbol: "FX:EURGBP", payout: "79%" }
+            { name: "EUR/USD", symbol: "FX:EURUSD", payout: "82%", type: "forex" },
+            { name: "GBP/USD", symbol: "FX:GBPUSD", payout: "80%", type: "forex" },
+            { name: "EUR/GBP", symbol: "FX:EURGBP", payout: "79%", type: "forex" },
+            { name: "USD/JPY", symbol: "FX:USDJPY", payout: "78%", type: "forex" }
         ],
         COMMODITIES: [
-            { name: "OURO OTC", symbol: "TVC:GOLD", payout: "90%" },
-            { name: "PETRÓLEO OTC", symbol: "TVC:USOIL", payout: "87%" }
+            { name: "OURO (GOLD)", symbol: "TVC:GOLD", payout: "90%", type: "comm" },
+            { name: "PETRÓLEO (USOIL)", symbol: "TVC:USOIL", payout: "87%", type: "comm" }
         ],
         STOCKS: [
-            { name: "APPLE OTC", symbol: "NASDAQ:AAPL", payout: "93%" },
-            { name: "TESLA OTC", symbol: "NASDAQ:TSLA", payout: "91%" }
-        ],
-        CRYPTO: [
-            { name: "BITCOIN OTC", symbol: "BINANCE:BTCUSDT", payout: "86%" },
-            { name: "ETHEREUM OTC", symbol: "BINANCE:ETHUSDT", payout: "84%" }
+            { name: "APPLE (AAPL)", symbol: "NASDAQ:AAPL", payout: "93%", type: "stock" },
+            { name: "TESLA (TSLA)", symbol: "NASDAQ:TSLA", payout: "91%", type: "stock" }
         ]
     };
 
     function App() {
         const [step, setStep] = useState(0); 
         const [selectedBroker, setSelectedBroker] = useState(BROKERS[0]);
-        const [selectedMarket, setSelectedMarket] = useState('OTC');
-        const [selectedPair, setSelectedPair] = useState(MARKETS.OTC[0]);
+        const [selectedMarket, setSelectedMarket] = useState('CRYPTO');
+        const [selectedPair, setSelectedPair] = useState(MARKETS.CRYPTO[0]);
         const [selectedTimeframe, setSelectedTimeframe] = useState('1'); 
         const [searchQuery, setSearchQuery] = useState('');
         const [signalData, setSignalData] = useState(null);
@@ -68,30 +70,47 @@
         const [secondsLeft, setSecondsLeft] = useState(60);
         const [tab, setTab] = useState('sinais');
 
-        // Renderização garantida do widget avançado em tempo real do TradingView
+        // Validação se o mercado está aberto ou fechado (Forex/Ações fecham aos fins de semana)
+        const checkIsMarketClosed = (type) => {
+            const now = new Date();
+            const day = now.getDay(); // 0 = Domingo, 6 = Sábado
+            const isWeekend = (day === 0 || day === 6);
+            if ((type === 'forex' || type === 'stock') && isWeekend) {
+                return true;
+            }
+            return false;
+        };
+
+        const isClosed = checkIsMarketClosed(selectedPair?.type);
+
+        // Renderização oficial do TradingView Advanced Chart
         useEffect(() => {
             if (step === 5) {
                 const containerId = "tradingview_widget_container";
-                document.getElementById(containerId).innerHTML = "";
-                
-                const script = document.createElement("script");
-                script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-                script.type = "text/javascript";
-                script.async = true;
-                script.innerHTML = JSON.stringify({
-                    "width": "100%",
-                    "height": "290",
-                    "symbol": selectedPair.symbol || "FX:EURUSD",
-                    "interval": selectedTimeframe,
-                    "timezone": "America/Sao_Paulo",
-                    "theme": "dark",
-                    "style": "1", // Velas (Candlesticks)
-                    "locale": "br",
-                    "allow_symbol_change": false,
-                    "calendar": false,
-                    "support_host": "https://www.tradingview.com"
-                });
-                document.getElementById(containerId).appendChild(script);
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.innerHTML = "";
+                    const script = document.createElement("script");
+                    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+                    script.type = "text/javascript";
+                    script.async = true;
+                    script.innerHTML = JSON.stringify({
+                        "width": "100%",
+                        "height": "270",
+                        "symbol": selectedPair.symbol || "BINANCE:BTCUSDT",
+                        "interval": selectedTimeframe,
+                        "timezone": "America/Sao_Paulo",
+                        "theme": "dark",
+                        "style": "1", // Velas (Candlesticks)
+                        "locale": "br",
+                        "enable_publishing": false,
+                        "hide_top_toolbar": false,
+                        "hide_legend": false,
+                        "save_image": false,
+                        "calendar": false
+                    });
+                    container.appendChild(script);
+                }
             }
         }, [step, selectedPair, selectedTimeframe]);
 
@@ -185,7 +204,7 @@
                                         onClick={() => { setSelectedMarket(m); setStep(2); }}
                                         className="bg-[#182030] border border-slate-700 hover:border-emerald-500 p-3.5 rounded-xl cursor-pointer transition-all"
                                     >
-                                        <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Ativo</span>
+                                        <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Disponível</span>
                                         <h3 className="font-bold text-base text-white mt-1.5">{m}</h3>
                                     </div>
                                 ))}
@@ -206,20 +225,20 @@
 
                             <input 
                                 type="text" 
-                                placeholder="Pesquisar (ex: EUR/GBP, EUR/USD)..." 
+                                placeholder="Pesquisar..." 
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="w-full bg-[#182030] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white mb-2.5 focus:outline-none focus:border-emerald-500"
                             />
 
-                            <div className="grid grid-cols-3 gap-2 max-h-[320px] overflow-y-auto">
+                            <div className="grid grid-cols-2 gap-2 max-h-[320px] overflow-y-auto">
                                 {(MARKETS[selectedMarket] || []).filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map((pair, idx) => (
                                     <div 
                                         key={idx} 
                                         onClick={() => { setSelectedPair(pair); setStep(3); }}
-                                        className="bg-[#182030] p-2.5 rounded-xl border border-slate-800 hover:border-emerald-500 cursor-pointer text-center flex flex-col justify-between items-center h-20"
+                                        className="bg-[#182030] p-3 rounded-xl border border-slate-800 hover:border-emerald-500 cursor-pointer flex justify-between items-center"
                                     >
-                                        <span className="text-[11px] font-bold text-slate-200">{pair.name}</span>
+                                        <span className="text-xs font-bold text-slate-200">{pair.name}</span>
                                         <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
                                             {pair.payout}
                                         </span>
@@ -264,22 +283,29 @@
                     {step === 4 && (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div className="w-20 h-20 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4 flex items-center justify-center"></div>
-                            <h2 className="text-lg font-extrabold text-white mb-1">Conectando ao Feed ao Vivo</h2>
-                            <p className="text-xs text-slate-400">Sincronizando gráfico de velas em tempo real...</p>
+                            <h2 className="text-lg font-extrabold text-white mb-1">Processando Análise</h2>
+                            <p className="text-xs text-slate-400">Varredura de velas TradingView...</p>
                         </div>
                     )}
 
-                    {/* PASSO 5: Gráfico Real do TradingView em Tempo Real + Botões */}
+                    {/* PASSO 5: Gráfico Real do TradingView + Alerta de Mercado Fechado */}
                     {step === 5 && (
                         <div className="space-y-2.5">
                             <div className="flex justify-between items-center">
-                                <span className="text-xs text-slate-300 font-bold">{selectedPair?.name} • {selectedTimeframe} MIN</span>
+                                <div>
+                                    <span className="text-xs text-slate-300 font-bold block">{selectedPair?.name}</span>
+                                    {isClosed ? (
+                                        <span className="text-[10px] font-bold text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-500/30">🔴 MERCADO FECHADO (Fim de Semana)</span>
+                                    ) : (
+                                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">🟢 MERCADO ABERTO (Live)</span>
+                                    )}
+                                </div>
                                 <button onClick={() => setStep(2)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700 hover:bg-slate-700">Trocar Ativo</button>
                             </div>
 
-                            {/* WIDGET AVANÇADO EM TEMPO REAL DO TRADINGVIEW */}
-                            <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#121824] shadow-inner">
-                                <div id="tradingview_widget_container" className="w-full h-[290px]"></div>
+                            {/* WIDGET OFICIAL DO TRADINGVIEW */}
+                            <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#121824] h-[270px] relative">
+                                <div id="tradingview_widget_container" className="w-full h-full"></div>
                             </div>
 
                             {/* Relógio com Contagem Regressiva Brasileira */}
@@ -304,12 +330,12 @@
                                 </div>
                             )}
 
-                            {/* Botões de Ação Rápida (Comprar / Vender) */}
+                            {/* Botões de Ação */}
                             <div className="grid grid-cols-2 gap-2 pt-0.5">
-                                <button onClick={() => alert("Ordem de Compra (Call) enviada com sucesso!")} className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 rounded-xl shadow-lg shadow-emerald-900/40 text-xs transition-all">
+                                <button onClick={() => alert("Ordem de Compra enviada!")} className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-lg">
                                     Comprar ▲
                                 </button>
-                                <button onClick={() => alert("Ordem de Venda (Put) enviada com sucesso!")} className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-2.5 rounded-xl shadow-lg shadow-rose-900/40 text-xs transition-all">
+                                <button onClick={() => alert("Ordem de Venda enviada!")} className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-lg">
                                     Vender ▼
                                 </button>
                             </div>
