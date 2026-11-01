@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Profitology Bot - Professional Trading</title>
+    <title>Profitology Bot</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -32,30 +32,12 @@
     const MARKETS = {
         CRYPTO: [
             { name: "BITCOIN (BTC/USDT)", symbol: "BINANCE:BTCUSDT", payout: "98%", type: "crypto" },
-            { name: "ETHEREUM (ETH/USDT)", symbol: "BINANCE:ETHUSDT", payout: "95%", type: "crypto" },
-            { name: "SOLANA (SOL/USDT)", symbol: "BINANCE:SOLUSDT", payout: "92%", type: "crypto" }
+            { name: "ETHEREUM (ETH/USDT)", symbol: "BINANCE:ETHUSDT", payout: "95%", type: "crypto" }
         ],
         OTC: [
             { name: "EUR/USD OTC", symbol: "FX:EURUSD", payout: "95%", type: "otc" },
             { name: "EUR/GBP OTC", symbol: "FX:EURGBP", payout: "91%", type: "otc" },
-            { name: "GBP/USD OTC", symbol: "FX:GBPUSD", payout: "89%", type: "otc" },
-            { name: "USD/JPY OTC", symbol: "FX:USDJPY", payout: "91%", type: "otc" },
-            { name: "USD/CHF OTC", symbol: "FX:USDCHF", payout: "89%", type: "otc" },
-            { name: "AUD/USD OTC", symbol: "FX:AUDUSD", payout: "74%", type: "otc" }
-        ],
-        FOREX: [
-            { name: "EUR/USD", symbol: "FX:EURUSD", payout: "82%", type: "forex" },
-            { name: "GBP/USD", symbol: "FX:GBPUSD", payout: "80%", type: "forex" },
-            { name: "EUR/GBP", symbol: "FX:EURGBP", payout: "79%", type: "forex" },
-            { name: "USD/JPY", symbol: "FX:USDJPY", payout: "78%", type: "forex" }
-        ],
-        COMMODITIES: [
-            { name: "OURO (GOLD)", symbol: "TVC:GOLD", payout: "90%", type: "comm" },
-            { name: "PETRÓLEO (USOIL)", symbol: "TVC:USOIL", payout: "87%", type: "comm" }
-        ],
-        STOCKS: [
-            { name: "APPLE (AAPL)", symbol: "NASDAQ:AAPL", payout: "93%", type: "stock" },
-            { name: "TESLA (TSLA)", symbol: "NASDAQ:TSLA", payout: "91%", type: "stock" }
+            { name: "GBP/USD OTC", symbol: "FX:GBPUSD", payout: "89%", type: "otc" }
         ]
     };
 
@@ -65,26 +47,15 @@
         const [selectedMarket, setSelectedMarket] = useState('CRYPTO');
         const [selectedPair, setSelectedPair] = useState(MARKETS.CRYPTO[0]);
         const [selectedTimeframe, setSelectedTimeframe] = useState('1'); 
-        const [searchQuery, setSearchQuery] = useState('');
         const [signalData, setSignalData] = useState(null);
-        
         const [secondsLeft, setSecondsLeft] = useState(60);
         const [tab, setTab] = useState('sinais');
         
-        // Placar de Win e Loss com Linha do Tempo (Dia, Semana, Mês)
         const [stats, setStats] = useState({
             day: { wins: 14, losses: 1 },
             week: { wins: 62, losses: 5 },
             month: { wins: 240, losses: 18 }
         });
-
-        const checkIsMarketClosed = (type) => {
-            const now = new Date();
-            const day = now.getDay();
-            return ((type === 'forex' || type === 'stock') && (day === 0 || day === 6));
-        };
-
-        const isClosed = checkIsMarketClosed(selectedPair?.type);
 
         useEffect(() => {
             if (step === 5 && tab === 'sinais') {
@@ -105,11 +76,7 @@
                         "theme": "dark",
                         "style": "1",
                         "locale": "br",
-                        "enable_publishing": false,
-                        "hide_top_toolbar": false,
-                        "hide_legend": false,
-                        "save_image": false,
-                        "calendar": false
+                        "hide_top_toolbar": false
                     });
                     container.appendChild(script);
                 }
@@ -121,8 +88,7 @@
             if (step === 5 && secondsLeft > 0 && tab === 'sinais') {
                 timer = setInterval(() => setSecondsLeft(prev => prev - 1), 1000);
             } else if (secondsLeft === 0 && step === 5 && tab === 'sinais') {
-                const totalSecs = selectedTimeframe === '1' ? 60 : selectedTimeframe === '3' ? 180 : selectedTimeframe === '5' ? 300 : 900;
-                setSecondsLeft(totalSecs);
+                setSecondsLeft(selectedTimeframe === '1' ? 60 : 300);
             }
             return () => clearInterval(timer);
         }, [step, secondsLeft, selectedTimeframe, tab]);
@@ -135,240 +101,150 @@
 
         const generateSignal = (tfVal) => {
             setSelectedTimeframe(tfVal);
-            const totalSecs = tfVal === '1' ? 60 : tfVal === '3' ? 180 : tfVal === '5' ? 300 : 900;
-            setSecondsLeft(totalSecs);
+            setSecondsLeft(tfVal === '1' ? 60 : 300);
             setStep(4);
-
             setTimeout(() => {
                 const isBuy = Math.random() > 0.45;
                 setSignalData({
                     type: isBuy ? 'BUY' : 'SELL',
                     text: isBuy ? 'COMPRAR (CALL)' : 'VENDER (PUT)',
                     textColor: isBuy ? 'text-emerald-400' : 'text-red-400',
-                    accuracy: (Math.random() * 3 + 95).toFixed(0) + '%'
+                    accuracy: '98%'
                 });
                 setStep(5);
-            }, 2000);
+            }, 1500);
         };
 
         const recordResult = (result) => {
             setStats(prev => {
-                const update = (period) => ({
-                    wins: period.wins + (result === 'win' ? 1 : 0),
-                    losses: period.losses + (result === 'loss' ? 1 : 0)
-                });
-                return {
-                    day: update(prev.day),
-                    week: update(prev.week),
-                    month: update(prev.month)
-                };
+                const update = (p) => ({ wins: p.wins + (result === 'win' ? 1 : 0), losses: p.losses + (result === 'loss' ? 1 : 0) });
+                return { day: update(prev.day), week: update(prev.week), month: update(prev.month) };
             });
         };
 
-        const calcRate = (w, l) => {
-            const total = w + l;
-            if (total === 0) return "0%";
-            return ((w / total) * 100).toFixed(0) + "%";
-        };
-
         return (
-            <div className="bg-[#111622] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden min-h-[740px] flex flex-col justify-between relative">
-                
-                {/* Header Superior */}
+            <div className="bg-[#111622] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden min-h-[720px] flex flex-col justify-between relative">
                 <div className="bg-[#161c2e] p-3 flex justify-between items-center border-b border-slate-800">
                     <div className="flex items-center space-x-2">
                         <div className="w-5 h-5 bg-emerald-500 rounded flex items-center justify-center font-bold text-black text-xs">▲</div>
-                        <span className="font-extrabold text-base text-white tracking-wider">PROFITOLOGY</span>
+                        <span className="font-extrabold text-base text-white">PROFITOLOGY</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <span className="bg-slate-800 text-xs text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700 flex items-center gap-1">
-                            {selectedBroker.icon} {selectedBroker.name}
-                        </span>
-                        <span className="bg-slate-800 text-xs text-slate-300 px-2.5 py-1 rounded-lg font-semibold border border-slate-700">🇧🇷 PT</span>
-                    </div>
+                    <span className="bg-slate-800 text-xs text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700">
+                        {selectedBroker.icon} {selectedBroker.name}
+                    </span>
                 </div>
 
-                {/* Conteúdo Dinâmico por Abas */}
                 <div className="p-3 flex-1 overflow-y-auto">
-
-                    {/* ABA TREINAMENTO */}
                     {tab === 'treinamento' && (
-                        <div className="space-y-4">
-                            <h2 className="text-xl font-extrabold text-white">Manual de Instruções</h2>
-                            <p className="text-xs text-slate-400">Aprenda a utilizar o Profitology Bot para maximizar seus lucros.</p>
-                            
-                            <div className="space-y-3 text-xs">
-                                <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
-                                    <h3 className="font-bold text-emerald-400 text-sm mb-1">1. Escolha da Corretora e Ativo</h3>
-                                    <p className="text-slate-300 leading-relaxed">Selecione sua corretora (como Hezilex, Quotex) e o mercado desejado. Confira se o ativo está com o selo verde de mercado aberto.</p>
-                                </div>
-                                <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
-                                    <h3 className="font-bold text-emerald-400 text-sm mb-1">2. Tempo de Expiração</h3>
-                                    <p className="text-slate-300 leading-relaxed">Escolha entre 1, 3, 5 ou 15 minutos para que o bot faça a leitura completa do gráfico de velas TradingView.</p>
-                                </div>
-                                <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
-                                    <h3 className="font-bold text-emerald-400 text-sm mb-1">3. Acompanhamento de Placar</h3>
-                                    <p className="text-slate-300 leading-relaxed">O painel exibe estatísticas divididas por Dia, Semana e Mês para rastrear sua consistência em tempo real.</p>
-                                </div>
-                            </div>
+                        <div className="space-y-3">
+                            <h2 className="text-lg font-extrabold text-white">Manual de Instruções</h2>
+                            <p className="text-xs text-slate-300">Escolha sua corretora, selecione o ativo, aguarde a análise do TradingView e utilize o placar de linha do tempo para gerenciar os seus resultados diários, semanais e mensais.</p>
                         </div>
                     )}
 
-                    {/* ABA PERFIL */}
                     {tab === 'perfil' && (
-                        <div className="space-y-4">
-                            <h2 className="text-xl font-extrabold text-white">Perfil do Trader</h2>
-                            <p className="text-xs text-slate-400">Gerencie suas configurações e status de conexão.</p>
-
-                            <div className="bg-[#182030] p-4 rounded-xl border border-slate-800 space-y-3">
-                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
-                                    <span className="text-xs text-slate-400">Status da Conta:</span>
-                                    <span className="text-xs font-bold text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-500/30">VIP PRO ATIVO</span>
-                                </div>
-                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
-                                    <span className="text-xs text-slate-400">Corretora Vinculada:</span>
-                                    <span className="text-xs font-bold text-white">{selectedBroker.icon} {selectedBroker.name}</span>
-                                </div>
-                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
-                                    <span className="text-xs text-slate-400">ID do Usuário:</span>
-                                    <span className="text-xs font-mono text-cyan-400">#PRFT-89240</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-slate-400">Servidor API:</span>
-                                    <span className="text-xs text-emerald-400">Conectado (Baixa Latência)</span>
-                                </div>
+                        <div className="space-y-3">
+                            <h2 className="text-lg font-extrabold text-white">Perfil do Trader</h2>
+                            <div className="bg-[#182030] p-3 rounded-xl border border-slate-800 text-xs space-y-2">
+                                <div className="flex justify-between"><span className="text-slate-400">Status:</span><span className="text-emerald-400 font-bold">VIP PRO</span></div>
+                                <div className="flex justify-between"><span className="text-slate-400">Corretora:</span><span className="text-white font-bold">{selectedBroker.name}</span></div>
                             </div>
                         </div>
                     )}
 
-                    {/* ABA SINAIS (Fluxo Principal) */}
                     {tab === 'sinais' && (
                         <div>
-                            {/* PASSO 0: Corretora */}
                             {step === 0 && (
                                 <div>
-                                    <h2 className="text-lg font-extrabold text-white mb-1">Escolha a Corretora</h2>
-                                    <p className="text-xs text-slate-400 mb-3">Selecione onde opera seus sinais.</p>
-                                    <div className="grid grid-cols-2 gap-2.5">
-                                        {BROKERS.map((b) => (
-                                            <div 
-                                                key={b.id} 
-                                                onClick={() => { setSelectedBroker(b); setStep(1); }}
-                                                className="bg-[#182030] border border-slate-700 hover:border-emerald-500 p-3.5 rounded-xl text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-1.5 h-24"
-                                            >
-                                                <span className="text-2xl">{b.icon}</span>
-                                                <span className="font-bold text-xs text-white">{b.name}</span>
+                                    <h2 className="text-base font-extrabold text-white mb-2">Escolha a Corretora</h2>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {BROKERS.map(b => (
+                                            <div key={b.id} onClick={() => { setSelectedBroker(b); setStep(1); }} className="bg-[#182030] p-3 rounded-xl border border-slate-700 text-center cursor-pointer">
+                                                <span className="text-xl">{b.icon}</span>
+                                                <span className="block font-bold text-xs mt-1 text-white">{b.name}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* PASSO 1: Mercado */}
                             {step === 1 && (
                                 <div>
-                                    <div className="flex justify-between items-center mb-3">
-                                        <h2 className="text-lg font-extrabold text-white">Escolha o Mercado</h2>
-                                        <button onClick={() => setStep(0)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700">Voltar</button>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2.5">
-                                        {Object.keys(MARKETS).map((m) => (
-                                            <div 
-                                                key={m} 
-                                                onClick={() => { setSelectedMarket(m); setStep(2); }}
-                                                className="bg-[#182030] border border-slate-700 hover:border-emerald-500 p-3.5 rounded-xl cursor-pointer transition-all"
-                                            >
-                                                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Disponível</span>
-                                                <h3 className="font-bold text-base text-white mt-1.5">{m}</h3>
+                                    <div className="flex justify-between mb-2"><h2 className="text-base font-extrabold text-white">Mercado</h2><button onClick={() => setStep(0)} className="text-xs bg-slate-800 px-2 py-1 rounded">Voltar</button></div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {Object.keys(MARKETS).map(m => (
+                                            <div key={m} onClick={() => { setSelectedMarket(m); setStep(2); }} className="bg-[#182030] p-3 rounded-xl border border-slate-700 cursor-pointer">
+                                                <h3 className="font-bold text-sm text-white">{m}</h3>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* PASSO 2: Ativo/Par */}
                             {step === 2 && (
                                 <div>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <div>
-                                            <span className="text-[10px] text-emerald-400 font-bold uppercase">{selectedMarket}</span>
-                                            <h2 className="text-lg font-extrabold text-white">Selecionar Ativo</h2>
-                                        </div>
-                                        <button onClick={() => setStep(1)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700">Voltar</button>
-                                    </div>
-
-                                    <input 
-                                        type="text" 
-                                        placeholder="Pesquisar..." 
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full bg-[#182030] border border-slate-700 rounded-xl px-3 py-2 text-xs text-white mb-2.5 focus:outline-none focus:border-emerald-500"
-                                    />
-
-                                    <div className="grid grid-cols-2 gap-2 max-h-[320px] overflow-y-auto">
-                                        {(MARKETS[selectedMarket] || []).filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map((pair, idx) => (
-                                            <div 
-                                                key={idx} 
-                                                onClick={() => { setSelectedPair(pair); setStep(3); }}
-                                                className="bg-[#182030] p-3 rounded-xl border border-slate-800 hover:border-emerald-500 cursor-pointer flex justify-between items-center"
-                                            >
-                                                <span className="text-xs font-bold text-slate-200">{pair.name}</span>
-                                                <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
-                                                    {pair.payout}
-                                                </span>
+                                    <div className="flex justify-between mb-2"><h2 className="text-base font-extrabold text-white">Ativo</h2><button onClick={() => setStep(1)} className="text-xs bg-slate-800 px-2 py-1 rounded">Voltar</button></div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {(MARKETS[selectedMarket] || []).map((p, i) => (
+                                            <div key={i} onClick={() => { setSelectedPair(p); setStep(3); }} className="bg-[#182030] p-2.5 rounded-xl border border-slate-800 cursor-pointer text-center">
+                                                <span className="text-xs font-bold text-white">{p.name}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* PASSO 3: Tempo */}
                             {step === 3 && (
                                 <div>
-                                    <div className="flex justify-between items-center mb-3">
-                                        <div>
-                                            <span className="text-[10px] text-emerald-400 font-bold uppercase">{selectedPair?.name}</span>
-                                            <h2 className="text-lg font-extrabold text-white">Tempo de Expiração</h2>
-                                        </div>
-                                        <button onClick={() => setStep(2)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700">Voltar</button>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-2.5 mt-2">
-                                        {[
-                                            { label: '1 MIN', val: '1' },
-                                            { label: '3 MIN', val: '3' },
-                                            { label: '5 MIN', val: '5' },
-                                            { label: '15 MIN', val: '15' }
-                                        ].map((tf, i) => (
-                                            <button 
-                                                key={i} 
-                                                onClick={() => generateSignal(tf.val)}
-                                                className="bg-[#182030] border border-slate-700 hover:border-emerald-500 p-5 rounded-xl text-center cursor-pointer transition-all hover:scale-[1.02]"
-                                            >
-                                                <span className="text-2xl font-extrabold text-emerald-400 block">{tf.label.split(' ')[0]}</span>
-                                                <span className="text-[10px] font-bold text-slate-400">MINUTOS</span>
+                                    <div className="flex justify-between mb-2"><h2 className="text-base font-extrabold text-white">Expiração</h2><button onClick={() => setStep(2)} className="text-xs bg-slate-800 px-2 py-1 rounded">Voltar</button></div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {['1', '5'].map(tf => (
+                                            <button key={tf} onClick={() => generateSignal(tf)} className="bg-[#182030] p-4 rounded-xl border border-slate-700 text-center font-bold text-emerald-400">
+                                                {tf} MINUTO{tf > '1' ? 'S' : ''}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* PASSO 4: Carregando */}
                             {step === 4 && (
                                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                                    <div className="w-20 h-20 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4 flex items-center justify-center"></div>
-                                    <h2 className="text-lg font-extrabold text-white mb-1">Processando Análise</h2>
-                                    <p className="text-xs text-slate-400">Varredura de velas TradingView...</p>
+                                    <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-3"></div>
+                                    <p className="text-xs text-slate-400">Analisando TradingView...</p>
                                 </div>
                             )}
 
-                            {/* PASSO 5: Gráfico Real + Placar com Linha do Tempo (Dia, Semana, Mês) */}
-                            {step === 5 && (
-                                <div className="space-y-2.5">
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <span className="text-xs text-slate-300 font-bold block">{selectedPair?.name}</span>
-                                            {isClosed ? (
-                                                <span className="text-[10px] font-bold text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-500/30">🔴 MERCADO FECHADO</span>
-                                            ) : (
-                                                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">🟢 MERCADO ABERTO (
+                            {step === 5 && signalData && (
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center"><span className="text-xs text-slate-300 font-bold">{selectedPair?.name}</span><button onClick={() => setStep(2)} className="text-xs bg-slate-800 px-2 py-1 rounded">Trocar</button></div>
+                                    <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#121824] h-[220px]"><div id="tradingview_widget_container" className="w-full h-full"></div></div>
+                                    <div className="bg-[#182030] px-3 py-1.5 rounded-xl flex justify-between items-center text-xs"><span className="text-slate-400">Fechamento:</span><span className="font-mono font-bold text-cyan-400">{formatTime(secondsLeft)}</span></div>
+                                    <div className="bg-slate-900 p-2 rounded-xl text-center"><span className={`text-sm font-extrabold ${signalData.textColor}`}>{signalData.text}</span></div>
+                                    
+                                    {/* Placar de Linha do Tempo */}
+                                    <div className="bg-[#182030] p-2 rounded-xl space-y-1.5 text-center">
+                                        <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold px-1"><span>Placar</span><div className="space-x-1"><button onClick={() => recordResult('win')} className="bg-emerald-600 px-2 py-0.5 rounded text-white">+Win</button><button onClick={() => recordResult('loss')} className="bg-rose-600 px-2 py-0.5 rounded text-white">+Loss</button></div></div>
+                                        <div className="grid grid-cols-3 gap-1">
+                                            <div className="bg-slate-900 p-1 rounded"><span className="text-[9px] text-slate-400 block">Hoje</span><span className="text-xs font-bold text-emerald-400">{stats.day.wins}W</span>/<span className="text-xs font-bold text-rose-400">{stats.day.losses}L</span></div>
+                                            <div className="bg-slate-900 p-1 rounded"><span className="text-[9px] text-slate-400 block">Semana</span><span className="text-xs font-bold text-emerald-400">{stats.week.wins}W</span>/<span className="text-xs font-bold text-rose-400">{stats.week.losses}L</span></div>
+                                            <div className="bg-slate-900 p-1 rounded"><span className="text-[9px] text-slate-400 block">Mês</span><span className="text-xs font-bold text-emerald-400">{stats.month.wins}W</span>/<span className="text-xs font-bold text-rose-400">{stats.month.losses}L</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="bg-[#161c2e] border-t border-slate-800 p-2 grid grid-cols-3 gap-2">
+                    <button onClick={() => setTab('treinamento')} className={`py-1.5 rounded-xl text-xs font-bold ${tab === 'treinamento' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}>📖 Treino</button>
+                    <button onClick={() => { setTab('sinais'); setStep(0); }} className={`py-1.5 rounded-xl text-xs font-extrabold ${tab === 'sinais' ? 'bg-emerald-500 text-black' : 'text-slate-500 bg-slate-900'}`}>📈 Sinais</button>
+                    <button onClick={() => setTab('perfil')} className={`py-1.5 rounded-xl text-xs font-bold ${tab === 'perfil' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}>👤 Perfil</button>
+                </div>
+            </div>
+        );
+    }
+    ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
