@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Profitology Bot - Trading Professional</title>
+    <title>Profitology Bot - Professional Trading</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -12,11 +12,11 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0b0f17; color: #ffffff; }
         .glow-green { box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
-        @keyframes radar-spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
-        .animate-radar { animation: radar-spin 2s linear infinite; }
+        .animate-pulse-slow { animation: pulse-slow 2s infinite; }
     </style>
 </head>
 <body class="flex justify-center items-center min-h-screen p-0 md:p-4">
@@ -27,8 +27,8 @@
     const { useState, useEffect } = React;
 
     const BROKERS = [
-        { id: 'deriv', name: 'Deriv', icon: '⚡' },
         { id: 'quotex', name: 'Quotex', icon: '💎' },
+        { id: 'deriv', name: 'Deriv', icon: '⚡' },
         { id: 'pocket', name: 'Pocket Option', icon: '🚀' },
         { id: 'iqoption', name: 'IQ Option', icon: '🎯' }
     ];
@@ -40,29 +40,20 @@
             { name: "GBP/USD OTC", payout: "89%" },
             { name: "USD/JPY OTC", payout: "91%" },
             { name: "USD/CHF OTC", payout: "89%" },
-            { name: "AUD/USD OTC", payout: "74%" },
-            { name: "EUR/JPY OTC", payout: "88%" },
-            { name: "AUD/CAD OTC", payout: "85%" },
-            { name: "AUD/CHF OTC", payout: "61%" },
-            { name: "AUD/JPY OTC", payout: "74%" },
-            { name: "AUD/NZD OTC", payout: "88%" },
-            { name: "AED/CNY OTC", payout: "92%" }
+            { name: "AUD/USD OTC", payout: "74%" }
         ],
         FOREX: [
             { name: "EUR/USD", payout: "82%" },
             { name: "GBP/USD", payout: "80%" },
-            { name: "EUR/GBP", payout: "79%" },
-            { name: "USD/JPY", payout: "78%" }
+            { name: "EUR/GBP", payout: "79%" }
         ],
         COMMODITIES: [
             { name: "OURO OTC", payout: "90%" },
-            { name: "PRATA OTC", payout: "86%" },
             { name: "PETRÓLEO OTC", payout: "87%" }
         ],
         STOCKS: [
             { name: "APPLE OTC", payout: "93%" },
-            { name: "TESLA OTC", payout: "91%" },
-            { name: "GOOGLE OTC", payout: "89%" }
+            { name: "TESLA OTC", payout: "91%" }
         ],
         CRYPTO: [
             { name: "BITCOIN OTC", payout: "86%" },
@@ -71,29 +62,39 @@
     };
 
     function App() {
-        const [step, setStep] = useState(0); // 0: Corretora, 1: Mercado, 2: Par, 3: Tempo, 4: Carregando, 5: Sinal/Gráfico
-        const [selectedBroker, setSelectedBroker] = useState(null);
+        const [step, setStep] = useState(0); // 0: Corretora, 1: Mercado, 2: Par, 3: Tempo, 4: Carregando, 5: Painel de Sinais/Gráfico
+        const [selectedBroker, setSelectedBroker] = useState(BROKERS[0]);
         const [selectedMarket, setSelectedMarket] = useState('OTC');
         const [selectedPair, setSelectedPair] = useState(null);
         const [selectedTimeframe, setSelectedTimeframe] = useState('1 MIN');
         const [searchQuery, setSearchQuery] = useState('');
         const [signalData, setSignalData] = useState(null);
-        const [countdown, setCountdown] = useState(60);
+        
+        // Relógio com formato brasileiro e contagem regressiva baseada no timeframe
+        const [secondsLeft, setSecondsLeft] = useState(60);
+        const [wins, setWins] = useState(18);
+        const [losses, setLosses] = useState(0);
         const [tab, setTab] = useState('sinais');
 
-        // Contagem regressiva do relógio da vela
         useEffect(() => {
             let timer;
-            if (step === 5 && countdown > 0) {
-                timer = setInterval(() => setCountdown(prev => prev - 1), 1000);
-            } else if (countdown === 0 && step === 5) {
-                setCountdown(selectedTimeframe === '1 MIN' ? 60 : selectedTimeframe === '3 MIN' ? 180 : selectedTimeframe === '5 MIN' ? 300 : 900);
+            if (step === 5 && secondsLeft > 0) {
+                timer = setInterval(() => setSecondsLeft(prev => prev - 1), 1000);
+            } else if (secondsLeft === 0 && step === 5) {
+                const totalSecs = selectedTimeframe === '1 MIN' ? 60 : selectedTimeframe === '3 MIN' ? 180 : selectedTimeframe === '5 MIN' ? 300 : 900;
+                setSecondsLeft(totalSecs);
             }
             return () => clearInterval(timer);
-        }, [step, countdown, selectedTimeframe]);
+        }, [step, secondsLeft, selectedTimeframe]);
 
-        const selectBroker = (broker) => {
-            setSelectedBroker(broker);
+        const formatTime = (totalSeconds) => {
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = totalSeconds % 60;
+            return `0${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        };
+
+        const selectBroker = (b) => {
+            setSelectedBroker(b);
             setStep(1);
         };
 
@@ -109,50 +110,48 @@
 
         const generateSignal = (tf) => {
             setSelectedTimeframe(tf);
-            const seconds = tf === '1 MIN' ? 60 : tf === '3 MIN' ? 180 : tf === '5 MIN' ? 300 : 900;
-            setCountdown(seconds);
+            const totalSecs = tf === '1 MIN' ? 60 : tf === '3 MIN' ? 180 : tf === '5 MIN' ? 300 : 900;
+            setSecondsLeft(totalSecs);
             setStep(4);
 
             setTimeout(() => {
-                const isBuy = Math.random() > 0.48;
-                const basePrice = (Math.random() * 50 + 1.1000).toFixed(4);
+                const isBuy = Math.random() > 0.45;
+                const price = (Math.random() * 20 + 1.0500).toFixed(4);
                 setSignalData({
                     type: isBuy ? 'BUY' : 'SELL',
-                    text: isBuy ? 'COMPRA' : 'VENDA',
-                    price: basePrice,
-                    accuracy: (Math.random() * 4 + 93).toFixed(0) + '%'
+                    text: isBuy ? 'COMPRA (BUY)' : 'VENDA (SELL)',
+                    price: price,
+                    accuracy: (Math.random() * 3 + 95).toFixed(0) + '%'
                 });
                 setStep(5);
             }, 2500);
         };
 
         return (
-            <div className="bg-[#111622] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden min-h-[700px] flex flex-col justify-between relative">
+            <div className="bg-[#111622] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden min-h-[720px] flex flex-col justify-between relative">
                 
-                {/* Header */}
+                {/* Header Superior */}
                 <div className="bg-[#161c2e] p-4 flex justify-between items-center border-b border-slate-800">
                     <div className="flex items-center space-x-2">
                         <div className="w-6 h-6 bg-emerald-500 rounded flex items-center justify-center font-bold text-black text-xs">▲</div>
                         <span className="font-extrabold text-lg text-white tracking-wider">PROFITOLOGY</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                        {selectedBroker && (
-                            <span className="bg-slate-800 text-xs text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700">
-                                {selectedBroker.icon} {selectedBroker.name}
-                            </span>
-                        )}
-                        <span className="bg-slate-800 text-xs text-slate-300 px-2 py-1 rounded font-semibold border border-slate-700">🇧🇷 PT</span>
+                        <span className="bg-slate-800 text-xs text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700 flex items-center gap-1">
+                            {selectedBroker.icon} {selectedBroker.name}
+                        </span>
+                        <span className="bg-slate-800 text-xs text-slate-300 px-2.5 py-1 rounded-lg font-semibold border border-slate-700">🇧🇷 PT</span>
                     </div>
                 </div>
 
-                {/* Conteúdo */}
+                {/* Conteúdo Dinâmico */}
                 <div className="p-4 flex-1 overflow-y-auto">
 
                     {/* PASSO 0: Escolher Corretora */}
                     {step === 0 && (
                         <div>
                             <h2 className="text-xl font-extrabold text-white mb-1">Escolha a Corretora</h2>
-                            <p className="text-xs text-slate-400 mb-4">Selecione onde irá operar com o Profitology Bot.</p>
+                            <p className="text-xs text-slate-400 mb-4">Selecione a plataforma onde opera.</p>
                             <div className="grid grid-cols-2 gap-3">
                                 {BROKERS.map((b) => (
                                     <div 
@@ -174,7 +173,7 @@
                             <div className="flex justify-between items-center mb-3">
                                 <div>
                                     <h2 className="text-xl font-extrabold text-white">Escolha o Mercado</h2>
-                                    <p className="text-xs text-slate-400">Selecione o tipo de ativo para análise.</p>
+                                    <p className="text-xs text-slate-400">Tipo de ativo para análise técnica.</p>
                                 </div>
                                 <button onClick={() => setStep(0)} className="bg-slate-800 text-xs px-3 py-1.5 rounded-lg text-slate-300 border border-slate-700">Voltar</button>
                             </div>
@@ -187,14 +186,14 @@
                                     >
                                         <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold">Disponível</span>
                                         <h3 className="font-bold text-lg text-white mt-2">{m}</h3>
-                                        <p className="text-[11px] text-slate-400 mt-1">Ativos do mercado {m.toLowerCase()}.</p>
+                                        <p className="text-[11px] text-slate-400 mt-1">Sessão {m.toLowerCase()}.</p>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    {/* PASSO 2: Escolher Par de Moedas (Com EUR/GBP, EUR/USD, etc.) */}
+                    {/* PASSO 2: Escolher Par de Moedas */}
                     {step === 2 && (
                         <div>
                             <div className="flex justify-between items-center mb-3">
@@ -259,59 +258,82 @@
                     {/* PASSO 4: Carregando Análise */}
                     {step === 4 && (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="w-24 h-24 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-radar mb-6 flex items-center justify-center">
+                            <div className="w-24 h-24 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-6 flex items-center justify-center">
                                 <div className="w-12 h-12 bg-emerald-500/10 rounded-full border border-emerald-500/30"></div>
                             </div>
                             <h2 className="text-xl font-extrabold text-white mb-1">Analisando Gráfico de Velas</h2>
-                            <p className="text-xs text-slate-400">Processando indicadores de tendência e price action...</p>
+                            <p className="text-xs text-slate-400">Processando ação de preço e tendências M1...</p>
                         </div>
                     )}
 
-                    {/* PASSO 5: Sinal Gerado + Gráfico de Velas + Relógio com Contagem Regressiva */}
+                    {/* PASSO 5: Dashboard Completo com Velas e Relógio no Formato Brasil */}
                     {step === 5 && signalData && (
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <span className="text-xs text-slate-400 font-bold">{selectedPair?.name} • {selectedTimeframe}</span>
-                                <button onClick={() => setStep(2)} className="bg-slate-800 text-xs px-3 py-1.5 rounded-lg text-slate-300 border border-slate-700">Novo Sinal</button>
+                                <button onClick={() => setStep(2)} className="bg-slate-800 text-xs px-3 py-1.5 rounded-lg text-slate-300 border border-slate-700 hover:bg-slate-700">Novo Sinal</button>
                             </div>
 
-                            {/* Simulação Visual do Mini Gráfico de Velas com Contagem Regressiva */}
-                            <div className="bg-[#182030] border border-slate-800 p-3 rounded-2xl flex justify-between items-center">
-                                <div className="flex items-center space-x-2">
-                                    <div className="flex space-x-1 items-end h-10">
-                                        <div className="w-2 h-6 bg-red-500 rounded-sm"></div>
-                                        <div className="w-2 h-8 bg-emerald-500 rounded-sm"></div>
-                                        <div className="w-2 h-5 bg-red-500 rounded-sm"></div>
-                                        <div className="w-2 h-10 bg-emerald-500 rounded-sm"></div>
+                            {/* Bloco do Gráfico de Velas Chinês/Real + Contagem Regressiva Brasileira */}
+                            <div className="bg-[#182030] border border-slate-800 p-3.5 rounded-2xl flex justify-between items-center shadow-md">
+                                <div className="flex items-center space-x-3">
+                                    {/* Desenho Estilizado de Velas (Candlesticks) */}
+                                    <div className="flex space-x-1.5 items-end h-10 px-1 bg-slate-900/60 rounded-lg p-1 border border-slate-800">
+                                        <div className="w-1.5 h-6 bg-red-500 rounded-sm relative"><div className="absolute -top-1 left-0.5 w-0.5 h-8 bg-red-400"></div></div>
+                                        <div className="w-1.5 h-8 bg-emerald-500 rounded-sm relative"><div className="absolute -top-1.5 left-0.5 w-0.5 h-10 bg-emerald-400"></div></div>
+                                        <div className="w-1.5 h-5 bg-red-500 rounded-sm relative"><div className="absolute -top-1 left-0.5 w-0.5 h-7 bg-red-400"></div></div>
+                                        <div className="w-1.5 h-10 bg-emerald-500 rounded-sm relative"><div className="absolute -top-2 left-0.5 w-0.5 h-12 bg-emerald-400"></div></div>
                                     </div>
-                                    <span className="text-xs text-slate-400 font-semibold">Velas M1</span>
+                                    <div>
+                                        <span className="text-xs text-white font-bold block">Velas M1 (OTC)</span>
+                                        <span className="text-[10px] text-emerald-400 font-semibold">Tendência Ativa</span>
+                                    </div>
                                 </div>
                                 <div className="text-right">
-                                    <span className="text-[10px] text-slate-500 block uppercase">Fechamento da Vela</span>
-                                    <span className="text-sm font-mono font-bold text-cyan-400">
-                                        00:{countdown < 10 ? `0${countdown}` : countdown}
+                                    <span className="text-[10px] text-slate-400 block uppercase font-semibold">Fechamento da Vela</span>
+                                    <span className="text-base font-mono font-extrabold text-cyan-400">
+                                        {formatTime(secondsLeft)}
                                     </span>
                                 </div>
                             </div>
 
                             {/* Alerta de Sinal (COMPRA / VENDA) */}
-                            <div className={`p-5 rounded-2xl border text-center ${signalData.type === 'BUY' ? 'bg-emerald-950/40 border-emerald-500/60' : 'bg-red-950/40 border-red-500/60'}`}>
+                            <div className={`p-5 rounded-2xl border text-center shadow-lg ${signalData.type === 'BUY' ? 'bg-emerald-950/40 border-emerald-500/60' : 'bg-red-950/40 border-red-500/60'}`}>
                                 <span className={`text-xs font-bold px-3 py-1 rounded-full text-white inline-block mb-2 ${signalData.type === 'BUY' ? 'bg-emerald-600' : 'bg-red-600'}`}>
                                     SINAL CONFIRMADO
                                 </span>
                                 <h2 className={`text-3xl font-extrabold tracking-wider ${signalData.type === 'BUY' ? 'text-emerald-400' : 'text-red-400'}`}>
-                                    {signalData.text} ({signalData.type})
+                                    {signalData.text}
                                 </h2>
                             </div>
 
+                            {/* Detalhes de Entrada */}
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="bg-[#182030] p-3 rounded-xl border border-slate-800">
+                                <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
                                     <span className="text-[11px] text-slate-400 block">Preço de Entrada</span>
                                     <span className="text-base font-bold text-white font-mono">{signalData.price}</span>
                                 </div>
-                                <div className="bg-[#182030] p-3 rounded-xl border border-slate-800">
+                                <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
                                     <span className="text-[11px] text-slate-400 block">Assertividade Estimada</span>
                                     <span className="text-base font-bold text-emerald-400">{signalData.accuracy}</span>
+                                </div>
+                            </div>
+
+                            {/* Placar de Vitórias e Derrotas (W / L) */}
+                            <div className="bg-[#182030] border border-slate-800 p-3 rounded-xl flex justify-around items-center text-center">
+                                <div>
+                                    <span className="text-[10px] text-slate-400 block font-bold">V (Vitórias)</span>
+                                    <span className="text-lg font-extrabold text-emerald-400">{wins}</span>
+                                </div>
+                                <div className="h-6 w-[1px] bg-slate-700"></div>
+                                <div>
+                                    <span className="text-[10px] text-slate-400 block font-bold">D (Derrotas)</span>
+                                    <span className="text-lg font-extrabold text-red-400">{losses}</span>
+                                </div>
+                                <div className="h-6 w-[1px] bg-slate-700"></div>
+                                <div>
+                                    <span className="text-[10px] text-slate-400 block font-bold">Win Rate</span>
+                                    <span className="text-lg font-extrabold text-cyan-400">100%</span>
                                 </div>
                             </div>
                         </div>
