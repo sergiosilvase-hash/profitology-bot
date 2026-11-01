@@ -1,13 +1,46 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profitology Bot</title>
     <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="bg-slate-950 text-slate-100">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-150 min-h-screen">
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+    <script type="text/babel">
+        function App() {
+            const [time, setTime] = React.useState(new Date().toLocaleTimeString());
+
+            React.useEffect(() => {
+                const timer = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            return (
+                <div className="flex flex-col items-center justify-center p-6 min-h-screen">
+                    <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl max-w-md w-full text-center">
+                        <h1 className="text-2xl font-bold text-emerald-400 mb-2">Profitology Bot</h1>
+                        <p className="text-slate-400 text-sm mb-6">Assistente de Trading Conectado</p>
+                        
+                        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 mb-6">
+                            <span className="text-xs text-slate-500 block uppercase tracking-wider mb-1">Hora do Servidor</span>
+                            <span className="text-3xl font-mono text-cyan-400">{time}</span>
+                        </div>
+
+                        <div className="bg-emerald-950/30 border border-emerald-500/30 text-emerald-300 p-3 rounded-lg text-sm">
+                            ✓ Sistema online e operacional na Vercel!
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
 </html>
