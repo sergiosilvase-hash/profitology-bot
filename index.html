@@ -22,9 +22,10 @@
     const { useState, useEffect } = React;
 
     const BROKERS = [
+        { id: 'hezilex', name: 'Hezilex', icon: '🚀' },
         { id: 'quotex', name: 'Quotex', icon: '💎' },
         { id: 'deriv', name: 'Deriv', icon: '⚡' },
-        { id: 'pocket', name: 'Pocket Option', icon: '🚀' },
+        { id: 'pocket', name: 'Pocket Option', icon: '🪐' },
         { id: 'iqoption', name: 'IQ Option', icon: '🎯' }
     ];
 
@@ -70,10 +71,9 @@
         const [secondsLeft, setSecondsLeft] = useState(60);
         const [tab, setTab] = useState('sinais');
 
-        // Validação se o mercado está aberto ou fechado (Forex/Ações fecham aos fins de semana)
         const checkIsMarketClosed = (type) => {
             const now = new Date();
-            const day = now.getDay(); // 0 = Domingo, 6 = Sábado
+            const day = now.getDay();
             const isWeekend = (day === 0 || day === 6);
             if ((type === 'forex' || type === 'stock') && isWeekend) {
                 return true;
@@ -83,7 +83,6 @@
 
         const isClosed = checkIsMarketClosed(selectedPair?.type);
 
-        // Renderização oficial do TradingView Advanced Chart
         useEffect(() => {
             if (step === 5) {
                 const containerId = "tradingview_widget_container";
@@ -101,7 +100,7 @@
                         "interval": selectedTimeframe,
                         "timezone": "America/Sao_Paulo",
                         "theme": "dark",
-                        "style": "1", // Velas (Candlesticks)
+                        "style": "1",
                         "locale": "br",
                         "enable_publishing": false,
                         "hide_top_toolbar": false,
@@ -114,7 +113,6 @@
             }
         }, [step, selectedPair, selectedTimeframe]);
 
-        // Contagem regressiva do relógio em formato brasileiro
         useEffect(() => {
             let timer;
             if (step === 5 && secondsLeft > 0) {
