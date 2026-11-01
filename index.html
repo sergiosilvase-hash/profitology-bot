@@ -69,20 +69,19 @@
         const [signalData, setSignalData] = useState(null);
         
         const [secondsLeft, setSecondsLeft] = useState(60);
-        const [tab, setTab] = useState('sinais'); // 'treinamento', 'sinais', 'perfil'
+        const [tab, setTab] = useState('sinais');
         
-        // Placar de Win e Loss
-        const [wins, setWins] = useState(18);
-        const [losses, setLosses] = useState(1);
+        // Placar de Win e Loss com Linha do Tempo (Dia, Semana, Mês)
+        const [stats, setStats] = useState({
+            day: { wins: 14, losses: 1 },
+            week: { wins: 62, losses: 5 },
+            month: { wins: 240, losses: 18 }
+        });
 
         const checkIsMarketClosed = (type) => {
             const now = new Date();
             const day = now.getDay();
-            const isWeekend = (day === 0 || day === 6);
-            if ((type === 'forex' || type === 'stock') && isWeekend) {
-                return true;
-            }
-            return false;
+            return ((type === 'forex' || type === 'stock') && (day === 0 || day === 6));
         };
 
         const isClosed = checkIsMarketClosed(selectedPair?.type);
@@ -99,7 +98,7 @@
                     script.async = true;
                     script.innerHTML = JSON.stringify({
                         "width": "100%",
-                        "height": "250",
+                        "height": "240",
                         "symbol": selectedPair.symbol || "BINANCE:BTCUSDT",
                         "interval": selectedTimeframe,
                         "timezone": "America/Sao_Paulo",
@@ -153,8 +152,23 @@
         };
 
         const recordResult = (result) => {
-            if (result === 'win') setWins(w => w + 1);
-            if (result === 'loss') setLosses(l => l + 1);
+            setStats(prev => {
+                const update = (period) => ({
+                    wins: period.wins + (result === 'win' ? 1 : 0),
+                    losses: period.losses + (result === 'loss' ? 1 : 0)
+                });
+                return {
+                    day: update(prev.day),
+                    week: update(prev.week),
+                    month: update(prev.month)
+                };
+            });
+        };
+
+        const calcRate = (w, l) => {
+            const total = w + l;
+            if (total === 0) return "0%";
+            return ((w / total) * 100).toFixed(0) + "%";
         };
 
         return (
@@ -181,24 +195,20 @@
                     {tab === 'treinamento' && (
                         <div className="space-y-4">
                             <h2 className="text-xl font-extrabold text-white">Manual de Instruções</h2>
-                            <p className="text-xs text-slate-400">Aprenda a utilizar o Profitology Bot para maximizar seus lucros em opções binárias.</p>
+                            <p className="text-xs text-slate-400">Aprenda a utilizar o Profitology Bot para maximizar seus lucros.</p>
                             
                             <div className="space-y-3 text-xs">
                                 <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
                                     <h3 className="font-bold text-emerald-400 text-sm mb-1">1. Escolha da Corretora e Ativo</h3>
-                                    <p className="text-slate-300 leading-relaxed">Selecione sua corretora (como Hezilex, Quotex ou IQ Option) e o mercado desejado. Verifique se o ativo está com o selo verde de mercado aberto.</p>
+                                    <p className="text-slate-300 leading-relaxed">Selecione sua corretora (como Hezilex, Quotex) e o mercado desejado. Confira se o ativo está com o selo verde de mercado aberto.</p>
                                 </div>
                                 <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
                                     <h3 className="font-bold text-emerald-400 text-sm mb-1">2. Tempo de Expiração</h3>
-                                    <p className="text-slate-300 leading-relaxed">Escolha entre 1, 3, 5 ou 15 minutos. O bot fará a análise completa do gráfico de velas do TradingView para este período.</p>
+                                    <p className="text-slate-300 leading-relaxed">Escolha entre 1, 3, 5 ou 15 minutos para que o bot faça a leitura completa do gráfico de velas TradingView.</p>
                                 </div>
                                 <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
-                                    <h3 className="font-bold text-emerald-400 text-sm mb-1">3. Momento da Entrada (Timing)</h3>
-                                    <p className="text-slate-300 leading-relaxed">Quando o sinal de <b>COMPRA (CALL)</b> ou <b>VENDA (PUT)</b> for gerado, observe o relógio de contagem regressiva. Se o sinal sair no início da vela, entre imediatamente. Se sair no final, aguarde a abertura da próxima vela.</p>
-                                </div>
-                                <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800">
-                                    <h3 className="font-bold text-emerald-400 text-sm mb-1">4. Gerenciamento de Risco</h3>
-                                    <p className="text-slate-300 leading-relaxed">Nunca arrisque mais do que 1% a 2% do seu capital total por operação. Utilize o placar de Win/Loss para acompanhar sua consistência diária.</p>
+                                    <h3 className="font-bold text-emerald-400 text-sm mb-1">3. Acompanhamento de Placar</h3>
+                                    <p className="text-slate-300 leading-relaxed">O painel exibe estatísticas divididas por Dia, Semana e Mês para rastrear sua consistência em tempo real.</p>
                                 </div>
                             </div>
                         </div>
@@ -227,11 +237,6 @@
                                     <span className="text-xs text-slate-400">Servidor API:</span>
                                     <span className="text-xs text-emerald-400">Conectado (Baixa Latência)</span>
                                 </div>
-                            </div>
-
-                            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 text-center">
-                                <p className="text-xs text-slate-400 mb-2">Dúvidas ou suporte técnico?</p>
-                                <span className="text-xs font-bold text-emerald-400 cursor-pointer">Falar com o Suporte Oficial</span>
                             </div>
                         </div>
                     )}
@@ -357,7 +362,7 @@
                                 </div>
                             )}
 
-                            {/* PASSO 5: Gráfico Real do TradingView + Placar Win/Loss */}
+                            {/* PASSO 5: Gráfico Real + Placar com Linha do Tempo (Dia, Semana, Mês) */}
                             {step === 5 && (
                                 <div className="space-y-2.5">
                                     <div className="flex justify-between items-center">
@@ -366,98 +371,4 @@
                                             {isClosed ? (
                                                 <span className="text-[10px] font-bold text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-500/30">🔴 MERCADO FECHADO</span>
                                             ) : (
-                                                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">🟢 MERCADO ABERTO (Live)</span>
-                                            )}
-                                        </div>
-                                        <button onClick={() => setStep(2)} className="bg-slate-800 text-xs px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700 hover:bg-slate-700">Trocar Ativo</button>
-                                    </div>
-
-                                    {/* WIDGET DO TRADINGVIEW */}
-                                    <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#121824] h-[250px] relative">
-                                        <div id="tradingview_widget_container" className="w-full h-full"></div>
-                                    </div>
-
-                                    {/* Relógio com Contagem Regressiva Brasileira */}
-                                    <div className="bg-[#182030] border border-slate-800 px-3 py-2 rounded-xl flex justify-between items-center">
-                                        <span className="text-xs text-slate-400 font-medium">Fechamento da Vela atual:</span>
-                                        <span className="text-sm font-mono font-extrabold text-cyan-400">
-                                            {formatTime(secondsLeft)}
-                                        </span>
-                                    </div>
-
-                                    {/* Alerta de Sinal Gerado */}
-                                    {signalData && (
-                                        <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-xl flex justify-between items-center">
-                                            <div>
-                                                <span className="text-[10px] text-slate-400 block font-bold">RECOMENDAÇÃO BOT</span>
-                                                <span className={`text-sm font-extrabold ${signalData.textColor}`}>{signalData.text}</span>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-[10px] text-slate-400 block font-bold">ASSERTIVIDADE</span>
-                                                <span className="text-xs font-extrabold text-emerald-400">{signalData.accuracy}</span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* PLACAR DE WIN E LOSS (Com botões para registrar resultados) */}
-                                    <div className="bg-[#182030] border border-slate-800 p-2.5 rounded-xl flex justify-between items-center">
-                                        <div className="flex space-x-4 items-center">
-                                            <div>
-                                                <span className="text-[10px] text-slate-400 block font-bold">WIN (V)</span>
-                                                <span className="text-base font-extrabold text-emerald-400">{wins}</span>
-                                            </div>
-                                            <div className="h-6 w-[1px] bg-slate-700"></div>
-                                            <div>
-                                                <span className="text-[10px] text-slate-400 block font-bold">LOSS (D)</span>
-                                                <span className="text-base font-extrabold text-rose-400">{losses}</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex space-x-1.5">
-                                            <button onClick={() => recordResult('win')} className="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg">
-                                                + Win
-                                            </button>
-                                            <button onClick={() => recordResult('loss')} className="bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg">
-                                                + Loss
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Botões de Ação */}
-                                    <div className="grid grid-cols-2 gap-2 pt-0.5">
-                                        <button onClick={() => alert("Ordem de Compra enviada!")} className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-lg">
-                                            Comprar ▲
-                                        </button>
-                                        <button onClick={() => alert("Ordem de Venda enviada!")} className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-lg">
-                                            Vender ▼
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {/* Navegação Inferior */}
-                <div className="bg-[#161c2e] border-t border-slate-800 p-2 grid grid-cols-3 gap-2">
-                    <button onClick={() => setTab('treinamento')} className={`py-1.5 rounded-xl flex flex-col items-center justify-center text-xs font-bold ${tab === 'treinamento' ? 'bg-slate-800 text-slate-200' : 'text-slate-500'}`}>
-                        <span>📖</span>
-                        <span>Treinamento</span>
-                    </button>
-                    <button onClick={() => { setTab('sinais'); setStep(0); }} className={`py-2 rounded-xl flex flex-col items-center justify-center text-xs font-extrabold ${tab === 'sinais' ? 'bg-emerald-500 text-black glow-green' : 'text-slate-500 bg-slate-900'}`}>
-                        <span>📈</span>
-                        <span>Sinais</span>
-                    </button>
-                    <button onClick={() => setTab('perfil')} className={`py-1.5 rounded-xl flex flex-col items-center justify-center text-xs font-bold ${tab === 'perfil' ? 'bg-slate-800 text-slate-200' : 'text-slate-500'}`}>
-                        <span>👤</span>
-                        <span>Perfil</span>
-                    </button>
-                </div>
-
-            </div>
-        );
-    }
-
-    ReactDOM.render(<App />, document.getElementById('root'));
-</script>
-</body>
-</html>
+                                                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">🟢 MERCADO ABERTO (
