@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Profitology Bot</title>
+    <title>Profitology Bot - Professional Trading</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -30,9 +30,19 @@
     ];
 
     const MARKETS = {
-        CRYPTO: [
-            { name: "BITCOIN (BTC/USDT)", symbol: "BINANCE:BTCUSDT", payout: "98%", type: "crypto" },
-            { name: "ETHEREUM (ETH/USDT)", symbol: "BINANCE:ETHUSDT", payout: "95%", type: "crypto" }
+        HEZILEX_ATIVOS: [
+            { name: "Bitcoin", symbol: "BINANCE:BTCUSDT", payout: "82%", type: "crypto" },
+            { name: "Litecoin", symbol: "BINANCE:LTCUSDT", payout: "82%", type: "crypto" },
+            { name: "Cardano", symbol: "BINANCE:ADAUSDT", payout: "87%", type: "crypto" },
+            { name: "BNB", symbol: "BINANCE:BNBUSDT", payout: "87%", type: "crypto" },
+            { name: "XRP", symbol: "BINANCE:XRPUSDT", payout: "82%", type: "crypto" },
+            { name: "Ethereum", symbol: "BINANCE:ETHUSDT", payout: "82%", type: "crypto" },
+            { name: "Solana", symbol: "BINANCE:SOLUSDT", payout: "82%", type: "crypto" },
+            { name: "AVAX", symbol: "BINANCE:AVAXUSDT", payout: "80%", type: "crypto" },
+            { name: "DOGE", symbol: "BINANCE:DOGEUSDT", payout: "82%", type: "crypto" },
+            { name: "SUI", symbol: "BINANCE:SUIUSDT", payout: "80%", type: "crypto" },
+            { name: "XPL", symbol: "BINANCE:BTCUSDT", payout: "80%", type: "crypto" },
+            { name: "Stellar", symbol: "BINANCE:XLMUSDT", payout: "80%", type: "crypto" }
         ],
         OTC: [
             { name: "EUR/USD OTC", symbol: "FX:EURUSD", payout: "95%", type: "otc" },
@@ -44,17 +54,20 @@
     function App() {
         const [step, setStep] = useState(0); 
         const [selectedBroker, setSelectedBroker] = useState(BROKERS[0]);
-        const [selectedMarket, setSelectedMarket] = useState('CRYPTO');
-        const [selectedPair, setSelectedPair] = useState(MARKETS.CRYPTO[0]);
+        const [selectedMarket, setSelectedMarket] = useState('HEZILEX_ATIVOS');
+        const [selectedPair, setSelectedPair] = useState(MARKETS.HEZILEX_ATIVOS[0]);
         const [selectedTimeframe, setSelectedTimeframe] = useState('1'); 
+        const [searchQuery, setSearchQuery] = useState('');
         const [signalData, setSignalData] = useState(null);
-        const [secondsLeft, setSecondsLeft] = useState(60);
-        const [tab, setTab] = useState('sinais');
         
+        const [secondsLeft, setSecondsLeft] = useState(60);
+        const [tab, setTab] = useState('sinais'); // 'treinamento', 'sinais', 'perfil'
+        
+        // Placar geral por período (soma de todos os ativos)
         const [stats, setStats] = useState({
-            day: { wins: 14, losses: 1 },
-            week: { wins: 62, losses: 5 },
-            month: { wins: 240, losses: 18 }
+            day: { wins: 0, losses: 0 },
+            week: { wins: 0, losses: 0 },
+            month: { wins: 0, losses: 0 }
         });
 
         useEffect(() => {
@@ -69,7 +82,7 @@
                     script.async = true;
                     script.innerHTML = JSON.stringify({
                         "width": "100%",
-                        "height": "240",
+                        "height": "210",
                         "symbol": selectedPair.symbol || "BINANCE:BTCUSDT",
                         "interval": selectedTimeframe,
                         "timezone": "America/Sao_Paulo",
@@ -115,15 +128,26 @@
             }, 1500);
         };
 
-        const recordResult = (result) => {
-            setStats(prev => {
-                const update = (p) => ({ wins: p.wins + (result === 'win' ? 1 : 0), losses: p.losses + (result === 'loss' ? 1 : 0) });
-                return { day: update(prev.day), week: update(prev.week), month: update(prev.month) };
-            });
+        const updateScore = (period, type, delta) => {
+            setStats(prev => ({
+                ...prev,
+                [period]: {
+                    ...prev[period],
+                    [type]: Math.max(0, prev[period][type] + delta)
+                }
+            }));
+        };
+
+        const calcRate = (w, l) => {
+            const total = w + l;
+            if (total === 0) return "0%";
+            return ((w / total) * 100).toFixed(0) + "%";
         };
 
         return (
-            <div className="bg-[#111622] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden min-h-[720px] flex flex-col justify-between relative">
+            <div className="bg-[#111622] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden min-h-[740px] flex flex-col justify-between relative">
+                
+                {/* Header */}
                 <div className="bg-[#161c2e] p-3 flex justify-between items-center border-b border-slate-800">
                     <div className="flex items-center space-x-2">
                         <div className="w-5 h-5 bg-emerald-500 rounded flex items-center justify-center font-bold text-black text-xs">▲</div>
@@ -134,24 +158,39 @@
                     </span>
                 </div>
 
+                {/* Conteúdo Dinâmico */}
                 <div className="p-3 flex-1 overflow-y-auto">
-                    {tab === 'treinamento' && (
-                        <div className="space-y-3">
-                            <h2 className="text-lg font-extrabold text-white">Manual de Instruções</h2>
-                            <p className="text-xs text-slate-300">Escolha sua corretora, selecione o ativo, aguarde a análise do TradingView e utilize o placar de linha do tempo para gerenciar os seus resultados diários, semanais e mensais.</p>
-                        </div>
-                    )}
 
-                    {tab === 'perfil' && (
-                        <div className="space-y-3">
-                            <h2 className="text-lg font-extrabold text-white">Perfil do Trader</h2>
-                            <div className="bg-[#182030] p-3 rounded-xl border border-slate-800 text-xs space-y-2">
-                                <div className="flex justify-between"><span className="text-slate-400">Status:</span><span className="text-emerald-400 font-bold">VIP PRO</span></div>
-                                <div className="flex justify-between"><span className="text-slate-400">Corretora:</span><span className="text-white font-bold">{selectedBroker.name}</span></div>
+                    {/* ABA TREINAMENTO */}
+                    {tab === 'treinamento' && (
+                        <div className="space-y-3 text-xs">
+                            <h2 className="text-lg font-extrabold text-white">📖 Manual de Treinamento e Operações</h2>
+                            
+                            <div className="bg-[#182030] p-3 rounded-xl border border-slate-800 space-y-1">
+                                <h3 className="font-bold text-emerald-400 text-sm">1. Configuração Inicial</h3>
+                                <p className="text-slate-300">Escolha a corretora desejada (ex: Hezilex) e selecione o ativo na lista para iniciar as análises automatizadas.</p>
+                            </div>
+
+                            <div className="bg-[#182030] p-3 rounded-xl border border-slate-800 space-y-1">
+                                <h3 className="font-bold text-emerald-400 text-sm">2. Placar Geral Unificado</h3>
+                                <p className="text-slate-300">O painel principal soma todas as suas operações independentemente do ativo operado, exibindo o resultado global acumulado para o Dia, Semana e Mês.</p>
                             </div>
                         </div>
                     )}
 
+                    {/* ABA PERFIL */}
+                    {tab === 'perfil' && (
+                        <div className="space-y-3">
+                            <h2 className="text-lg font-extrabold text-white">Perfil do Trader</h2>
+                            <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800 text-xs space-y-2.5">
+                                <div className="flex justify-between items-center"><span className="text-slate-400">Status:</span><span className="text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded">VIP PRO ATIVO</span></div>
+                                <div className="flex justify-between items-center"><span className="text-slate-400">Corretora Padrão:</span><span className="text-white font-bold">{selectedBroker.icon} {selectedBroker.name}</span></div>
+                                <div className="flex justify-between items-center"><span className="text-slate-400">ID do Sistema:</span><span className="text-cyan-400 font-mono">#PRFT-9942</span></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ABA SINAIS */}
                     {tab === 'sinais' && (
                         <div>
                             {step === 0 && (
@@ -159,7 +198,7 @@
                                     <h2 className="text-base font-extrabold text-white mb-2">Escolha a Corretora</h2>
                                     <div className="grid grid-cols-2 gap-2">
                                         {BROKERS.map(b => (
-                                            <div key={b.id} onClick={() => { setSelectedBroker(b); setStep(1); }} className="bg-[#182030] p-3 rounded-xl border border-slate-700 text-center cursor-pointer">
+                                            <div key={b.id} onClick={() => { setSelectedBroker(b); setStep(1); }} className="bg-[#182030] p-3 rounded-xl border border-slate-700 text-center cursor-pointer hover:border-emerald-500 transition-all">
                                                 <span className="text-xl">{b.icon}</span>
                                                 <span className="block font-bold text-xs mt-1 text-white">{b.name}</span>
                                             </div>
@@ -170,24 +209,28 @@
 
                             {step === 1 && (
                                 <div>
-                                    <div className="flex justify-between mb-2"><h2 className="text-base font-extrabold text-white">Mercado</h2><button onClick={() => setStep(0)} className="text-xs bg-slate-800 px-2 py-1 rounded">Voltar</button></div>
+                                    <div className="flex justify-between mb-2"><h2 className="text-base font-extrabold text-white">Mercado</h2><button onClick={() => setStep(0)} className="text-xs bg-slate-800 px-2.5 py-1 rounded text-slate-300">Voltar</button></div>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {Object.keys(MARKETS).map(m => (
-                                            <div key={m} onClick={() => { setSelectedMarket(m); setStep(2); }} className="bg-[#182030] p-3 rounded-xl border border-slate-700 cursor-pointer">
-                                                <h3 className="font-bold text-sm text-white">{m}</h3>
-                                            </div>
-                                        ))}
+                                        <div onClick={() => { setSelectedMarket('HEZILEX_ATIVOS'); setStep(2); }} className="bg-[#182030] p-3.5 rounded-xl border border-slate-700 cursor-pointer">
+                                            <h3 className="font-bold text-sm text-white">Hezilex Ativos</h3>
+                                            <span className="text-[10px] text-emerald-400">Cripto & Altcoins</span>
+                                        </div>
+                                        <div onClick={() => { setSelectedMarket('OTC'); setStep(2); }} className="bg-[#182030] p-3.5 rounded-xl border border-slate-700 cursor-pointer">
+                                            <h3 className="font-bold text-sm text-white">Mercado OTC</h3>
+                                            <span className="text-[10px] text-emerald-400">Pares Cambiais</span>
+                                        </div>
                                     </div>
                                 </div>
                             )}
 
                             {step === 2 && (
                                 <div>
-                                    <div className="flex justify-between mb-2"><h2 className="text-base font-extrabold text-white">Ativo</h2><button onClick={() => setStep(1)} className="text-xs bg-slate-800 px-2 py-1 rounded">Voltar</button></div>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex justify-between mb-2"><h2 className="text-base font-extrabold text-white">Selecionar Ativo</h2><button onClick={() => setStep(1)} className="text-xs bg-slate-800 px-2.5 py-1 rounded text-slate-300">Voltar</button></div>
+                                    <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
                                         {(MARKETS[selectedMarket] || []).map((p, i) => (
-                                            <div key={i} onClick={() => { setSelectedPair(p); setStep(3); }} className="bg-[#182030] p-2.5 rounded-xl border border-slate-800 cursor-pointer text-center">
+                                            <div key={i} onClick={() => { setSelectedPair(p); setStep(3); }} className="bg-[#182030] p-2.5 rounded-xl border border-slate-800 hover:border-emerald-500 cursor-pointer flex justify-between items-center">
                                                 <span className="text-xs font-bold text-white">{p.name}</span>
+                                                <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">{p.payout}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -196,10 +239,10 @@
 
                             {step === 3 && (
                                 <div>
-                                    <div className="flex justify-between mb-2"><h2 className="text-base font-extrabold text-white">Expiração</h2><button onClick={() => setStep(2)} className="text-xs bg-slate-800 px-2 py-1 rounded">Voltar</button></div>
+                                    <div className="flex justify-between mb-2"><h2 className="text-base font-extrabold text-white">Expiração</h2><button onClick={() => setStep(2)} className="text-xs bg-slate-800 px-2.5 py-1 rounded text-slate-300">Voltar</button></div>
                                     <div className="grid grid-cols-2 gap-2">
                                         {['1', '5'].map(tf => (
-                                            <button key={tf} onClick={() => generateSignal(tf)} className="bg-[#182030] p-4 rounded-xl border border-slate-700 text-center font-bold text-emerald-400">
+                                            <button key={tf} onClick={() => generateSignal(tf)} className="bg-[#182030] p-4 rounded-xl border border-slate-700 text-center font-bold text-emerald-400 hover:border-emerald-500 transition-all">
                                                 {tf} MINUTO{tf > '1' ? 'S' : ''}
                                             </button>
                                         ))}
@@ -216,18 +259,55 @@
 
                             {step === 5 && signalData && (
                                 <div className="space-y-2">
-                                    <div className="flex justify-between items-center"><span className="text-xs text-slate-300 font-bold">{selectedPair?.name}</span><button onClick={() => setStep(2)} className="text-xs bg-slate-800 px-2 py-1 rounded">Trocar</button></div>
-                                    <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#121824] h-[220px]"><div id="tradingview_widget_container" className="w-full h-full"></div></div>
-                                    <div className="bg-[#182030] px-3 py-1.5 rounded-xl flex justify-between items-center text-xs"><span className="text-slate-400">Fechamento:</span><span className="font-mono font-bold text-cyan-400">{formatTime(secondsLeft)}</span></div>
-                                    <div className="bg-slate-900 p-2 rounded-xl text-center"><span className={`text-sm font-extrabold ${signalData.textColor}`}>{signalData.text}</span></div>
+                                    <div className="flex justify-between items-center"><span className="text-xs text-slate-300 font-bold">{selectedPair?.name}</span><button onClick={() => setStep(2)} className="text-xs bg-slate-800 px-2.5 py-1 rounded text-slate-300">Trocar Ativo</button></div>
                                     
-                                    {/* Placar de Linha do Tempo */}
-                                    <div className="bg-[#182030] p-2 rounded-xl space-y-1.5 text-center">
-                                        <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold px-1"><span>Placar</span><div className="space-x-1"><button onClick={() => recordResult('win')} className="bg-emerald-600 px-2 py-0.5 rounded text-white">+Win</button><button onClick={() => recordResult('loss')} className="bg-rose-600 px-2 py-0.5 rounded text-white">+Loss</button></div></div>
-                                        <div className="grid grid-cols-3 gap-1">
-                                            <div className="bg-slate-900 p-1 rounded"><span className="text-[9px] text-slate-400 block">Hoje</span><span className="text-xs font-bold text-emerald-400">{stats.day.wins}W</span>/<span className="text-xs font-bold text-rose-400">{stats.day.losses}L</span></div>
-                                            <div className="bg-slate-900 p-1 rounded"><span className="text-[9px] text-slate-400 block">Semana</span><span className="text-xs font-bold text-emerald-400">{stats.week.wins}W</span>/<span className="text-xs font-bold text-rose-400">{stats.week.losses}L</span></div>
-                                            <div className="bg-slate-900 p-1 rounded"><span className="text-[9px] text-slate-400 block">Mês</span><span className="text-xs font-bold text-emerald-400">{stats.month.wins}W</span>/<span className="text-xs font-bold text-rose-400">{stats.month.losses}L</span></div>
+                                    {/* Gráfico TradingView */}
+                                    <div className="rounded-xl overflow-hidden border border-slate-800 bg-[#121824] h-[200px]"><div id="tradingview_widget_container" className="w-full h-full"></div></div>
+                                    
+                                    <div className="bg-[#182030] px-3 py-1 rounded-xl flex justify-between items-center text-xs"><span className="text-slate-400">Fechamento da Vela:</span><span className="font-mono font-bold text-cyan-400">{formatTime(secondsLeft)}</span></div>
+                                    
+                                    <div className="bg-slate-900 p-2 rounded-xl text-center border border-slate-800"><span className={`text-sm font-extrabold ${signalData.textColor}`}>{signalData.text}</span></div>
+                                    
+                                    {/* PLACAR GERAL UNIFICADO (SOMA DE TODOS OS ATIVOS) */}
+                                    <div className="bg-[#182030] p-2.5 rounded-xl border border-slate-800 space-y-2">
+                                        <div className="text-[11px] font-bold text-slate-300 text-center uppercase tracking-wide">Placar Geral (Soma de Todos os Ativos)</div>
+                                        
+                                        <div className="grid grid-cols-3 gap-1.5 text-center">
+                                            {/* HOJE */}
+                                            <div className="bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                                                <span className="text-[9px] text-slate-400 block font-bold">HOJE</span>
+                                                <span className="text-xs font-extrabold text-emerald-400">{stats.day.wins}W</span> / <span className="text-xs font-extrabold text-rose-400">{stats.day.losses}L</span>
+                                                <div className="flex justify-center space-x-1 mt-1">
+                                                    <button onClick={() => updateScore('day', 'wins', 1)} className="bg-emerald-600 px-1.5 rounded text-[10px] font-bold text-white">+</button>
+                                                    <button onClick={() => updateScore('day', 'wins', -1)} className="bg-slate-800 px-1 rounded text-[10px] text-slate-300">-</button>
+                                                    <button onClick={() => updateScore('day', 'losses', 1)} className="bg-rose-600 px-1.5 rounded text-[10px] font-bold text-white">+</button>
+                                                    <button onClick={() => updateScore('day', 'losses', -1)} className="bg-slate-800 px-1 rounded text-[10px] text-slate-300">-</button>
+                                                </div>
+                                            </div>
+
+                                            {/* SEMANAL */}
+                                            <div className="bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                                                <span className="text-[9px] text-slate-400 block font-bold">SEMANA</span>
+                                                <span className="text-xs font-extrabold text-emerald-400">{stats.week.wins}W</span> / <span className="text-xs font-extrabold text-rose-400">{stats.week.losses}L</span>
+                                                <div className="flex justify-center space-x-1 mt-1">
+                                                    <button onClick={() => updateScore('week', 'wins', 1)} className="bg-emerald-600 px-1.5 rounded text-[10px] font-bold text-white">+</button>
+                                                    <button onClick={() => updateScore('week', 'wins', -1)} className="bg-slate-800 px-1 rounded text-[10px] text-slate-300">-</button>
+                                                    <button onClick={() => updateScore('week', 'losses', 1)} className="bg-rose-600 px-1.5 rounded text-[10px] font-bold text-white">+</button>
+                                                    <button onClick={() => updateScore('week', 'losses', -1)} className="bg-slate-800 px-1 rounded text-[10px] text-slate-300">-</button>
+                                                </div>
+                                            </div>
+
+                                            {/* MENSAL */}
+                                            <div className="bg-slate-900 p-1.5 rounded-lg border border-slate-800">
+                                                <span className="text-[9px] text-slate-400 block font-bold">MÊS</span>
+                                                <span className="text-xs font-extrabold text-emerald-400">{stats.month.wins}W</span> / <span className="text-xs font-extrabold text-rose-400">{stats.month.losses}L</span>
+                                                <div className="flex justify-center space-x-1 mt-1">
+                                                    <button onClick={() => updateScore('month', 'wins', 1)} className="bg-emerald-600 px-1.5 rounded text-[10px] font-bold text-white">+</button>
+                                                    <button onClick={() => updateScore('month', 'wins', -1)} className="bg-slate-800 px-1 rounded text-[10px] text-slate-300">-</button>
+                                                    <button onClick={() => updateScore('month', 'losses', 1)} className="bg-rose-600 px-1.5 rounded text-[10px] font-bold text-white">+</button>
+                                                    <button onClick={() => updateScore('month', 'losses', -1)} className="bg-slate-800 px-1 rounded text-[10px] text-slate-300">-</button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -236,11 +316,13 @@
                     )}
                 </div>
 
+                {/* Navegação Inferior */}
                 <div className="bg-[#161c2e] border-t border-slate-800 p-2 grid grid-cols-3 gap-2">
                     <button onClick={() => setTab('treinamento')} className={`py-1.5 rounded-xl text-xs font-bold ${tab === 'treinamento' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}>📖 Treino</button>
                     <button onClick={() => { setTab('sinais'); setStep(0); }} className={`py-1.5 rounded-xl text-xs font-extrabold ${tab === 'sinais' ? 'bg-emerald-500 text-black' : 'text-slate-500 bg-slate-900'}`}>📈 Sinais</button>
                     <button onClick={() => setTab('perfil')} className={`py-1.5 rounded-xl text-xs font-bold ${tab === 'perfil' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}>👤 Perfil</button>
                 </div>
+
             </div>
         );
     }
