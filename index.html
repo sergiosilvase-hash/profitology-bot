@@ -66,12 +66,8 @@
         const [secondsLeft, setSecondsLeft] = useState(60);
         const [tradeNotification, setTradeNotification] = useState(null);
         
-        // Placar Geral de Performance sincronizado com os botões de Compra/Venda
-        const [stats, setStats] = useState({
-            day: { wins: 12, losses: 1 },
-            week: { wins: 45, losses: 5 },
-            month: { wins: 180, losses: 14 }
-        });
+        // Placar Único e Global Editável (sem divisões de tempo)
+        const [score, setScore] = useState({ wins: 18, losses: 2 });
 
         // Carregar TradingView no passo final do sinal
         useEffect(() => {
@@ -119,7 +115,7 @@
         const processSignal = (tf) => {
             setSelectedTimeframe(tf);
             setSecondsLeft(tf === '1' ? 60 : 300);
-            setStep(3); // Tela de carregamento "Gotovim vash signal"
+            setStep(3); // Tela de carregamento
 
             setTimeout(() => {
                 const isBuy = Math.random() > 0.45;
@@ -135,34 +131,27 @@
             }, 2000);
         };
 
-        // Função que registra o resultado da operação nos botões de Compra/Venda e alimenta o Dashboard
+        // Função que registra o resultado da operação e atualiza o placar global
         const executeTradeAction = (actionType) => {
-            // Simula o resultado da operação (80% de chance de WIN seguindo a IA, ou aleatório simulado)
             const isWin = Math.random() > 0.2; 
-            const resultKey = isWin ? 'wins' : 'losses';
-
-            setStats(prev => ({
-                ...prev,
-                day: { ...prev.day, [resultKey]: prev.day[resultKey] + 1 },
-                week: { ...prev.week, [resultKey]: prev.week[resultKey] + 1 },
-                month: { ...prev.month, [resultKey]: prev.month[resultKey] + 1 }
+            
+            setScore(prev => ({
+                wins: isWin ? prev.wins + 1 : prev.wins,
+                losses: !isWin ? prev.losses + 1 : prev.losses
             }));
 
             setTradeNotification({
-                message: isWin ? '🟢 Operação Finalizada: WIN (+ Lucro registrado no Dashboard)!' : '🔴 Operação Finalizada: LOSS (Registrado no Dashboard).',
+                message: isWin ? '🟢 Operação Finalizada: WIN (+1 Vitória computada)!' : '🔴 Operação Finalizada: LOSS (+1 Derrota computada).',
                 isWin: isWin
             });
 
             setTimeout(() => setTradeNotification(null), 4000);
         };
 
-        const updateScore = (period, type, delta) => {
-            setStats(prev => ({
+        const modifyScore = (type, delta) => {
+            setScore(prev => ({
                 ...prev,
-                [period]: {
-                    ...prev[period],
-                    [type]: Math.max(0, prev[period][type] + delta)
-                }
+                [type]: Math.max(0, prev[type] + delta)
             }));
         };
 
@@ -189,7 +178,7 @@
                     </div>
                 </div>
 
-                {/* Notificação flutuante de resultado da ordem */}
+                {/* Notificação flutuante */}
                 {tradeNotification && (
                     <div className={`absolute top-14 left-4 right-4 z-50 p-3 rounded-xl text-xs font-bold text-center shadow-xl border ${tradeNotification.isWin ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500' : 'bg-rose-950/90 text-rose-300 border-rose-500'}`}>
                         {tradeNotification.message}
@@ -199,48 +188,49 @@
                 {/* Conteúdo */}
                 <div className="p-3 flex-1 overflow-y-auto">
 
-                    {/* DASHBOARD PRINCIPAL */}
+                    {/* DASHBOARD COM PLACAR ÚNICO E EDITÁVEL */}
                     {tab === 'dashboard' && (
                         <div className="space-y-4">
                             <div>
-                                <h2 className="text-lg font-extrabold text-white">Dashboard Geral de Performance</h2>
-                                <p className="text-xs text-slate-400">Acompanhamento consolidado de Win e Loss (atualizado automaticamente pelos sinais).</p>
+                                <h2 className="text-lg font-extrabold text-white">Dashboard de Placar</h2>
+                                <p className="text-xs text-slate-400">Gerencie e edite suas vitórias e derrotas livremente.</p>
                             </div>
 
-                            <div className="bg-[#141b2d] p-4 rounded-xl border border-slate-800 space-y-3">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Resultado de Hoje</span>
+                            <div className="bg-[#141b2d] p-4 rounded-xl border border-slate-800 space-y-4">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block text-center">Placar Geral Editável</span>
+                                
                                 <div className="grid grid-cols-3 gap-2 text-center">
-                                    <div className="bg-emerald-950/40 border border-emerald-500/30 p-2.5 rounded-xl">
+                                    <div className="bg-emerald-950/40 border border-emerald-500/30 p-3 rounded-xl">
                                         <span className="text-[10px] text-emerald-400 font-bold block">WINS</span>
-                                        <span className="text-xl font-extrabold text-emerald-400">{stats.day.wins}</span>
+                                        <span className="text-2xl font-extrabold text-emerald-400">{score.wins}</span>
                                     </div>
-                                    <div className="bg-rose-950/40 border border-rose-500/30 p-2.5 rounded-xl">
+                                    <div className="bg-rose-950/40 border border-rose-500/30 p-3 rounded-xl">
                                         <span className="text-[10px] text-rose-400 font-bold block">LOSSES</span>
-                                        <span className="text-xl font-extrabold text-rose-400">{stats.day.losses}</span>
+                                        <span className="text-2xl font-extrabold text-rose-400">{score.losses}</span>
                                     </div>
-                                    <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-xl">
+                                    <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl">
                                         <span className="text-[10px] text-cyan-400 font-bold block">ASSERTIVIDADE</span>
-                                        <span className="text-xl font-extrabold text-cyan-400">{calcRate(stats.day.wins, stats.day.losses)}</span>
+                                        <span className="text-2xl font-extrabold text-cyan-400">{calcRate(score.wins, score.losses)}</span>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="bg-[#141b2d] p-3.5 rounded-xl border border-slate-800 space-y-3">
-                                <span className="text-xs font-bold text-slate-300 block border-b border-slate-800 pb-2">Gerenciar Placar por Linha do Tempo</span>
-                                {['day', 'week', 'month'].map((period) => (
-                                    <div key={period} className="flex justify-between items-center bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                                        <div>
-                                            <span className="text-xs font-bold text-white capitalize">{period === 'day' ? 'Hoje' : period === 'week' ? 'Esta Semana' : 'Este Mês'}</span>
-                                            <span className="text-[10px] text-slate-400 block">{stats[period].wins}W • {stats[period].losses}L</span>
-                                        </div>
-                                        <div className="flex space-x-1">
-                                            <button onClick={() => updateScore(period, 'wins', 1)} className="bg-emerald-600 px-2 py-1 rounded text-xs font-bold text-white">+ Win</button>
-                                            <button onClick={() => updateScore(period, 'wins', -1)} className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-400">-</button>
-                                            <button onClick={() => updateScore(period, 'losses', 1)} className="bg-rose-600 px-2 py-1 rounded text-xs font-bold text-white">+ Loss</button>
-                                            <button onClick={() => updateScore(period, 'losses', -1)} className="bg-slate-800 px-2 py-1 rounded text-xs text-slate-400">-</button>
+                                {/* Botões de Edição Manual Direta */}
+                                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+                                    <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 flex flex-col items-center gap-2">
+                                        <span className="text-xs font-bold text-emerald-400">Ajustar Wins</span>
+                                        <div className="flex gap-2 w-full">
+                                            <button onClick={() => modifyScore('wins', -1)} className="flex-1 bg-slate-800 hover:bg-slate-700 py-1.5 rounded text-xs font-bold text-slate-300">-1</button>
+                                            <button onClick={() => modifyScore('wins', 1)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 py-1.5 rounded text-xs font-bold text-white">+1</button>
                                         </div>
                                     </div>
-                                ))}
+                                    <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 flex flex-col items-center gap-2">
+                                        <span className="text-xs font-bold text-rose-400">Ajustar Losses</span>
+                                        <div className="flex gap-2 w-full">
+                                            <button onClick={() => modifyScore('losses', -1)} className="flex-1 bg-slate-800 hover:bg-slate-700 py-1.5 rounded text-xs font-bold text-slate-300">-1</button>
+                                            <button onClick={() => modifyScore('losses', 1)} className="flex-1 bg-rose-600 hover:bg-rose-500 py-1.5 rounded text-xs font-bold text-white">+1</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -248,7 +238,7 @@
                     {/* ABA SINAIS */}
                     {tab === 'sinais' && (
                         <div>
-                            {/* PASSO 0: Seleção de Mercado */}
+                            {/* PASSO 0: Mercado */}
                             {step === 0 && (
                                 <div className="space-y-3">
                                     <h2 className="text-base font-extrabold text-white">Escolha o Mercado</h2>
@@ -265,7 +255,6 @@
                                         </div>
                                     </div>
 
-                                    {/* Seletor rápido de Corretora */}
                                     <div className="pt-2">
                                         <span className="text-xs font-bold text-slate-400 block mb-2">Corretora Conectada:</span>
                                         <div className="grid grid-cols-3 gap-1.5">
@@ -279,7 +268,7 @@
                                 </div>
                             )}
 
-                            {/* PASSO 1: Seleção de Ativos */}
+                            {/* PASSO 1: Ativos */}
                             {step === 1 && (
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center mb-1">
@@ -297,7 +286,7 @@
                                 </div>
                             )}
 
-                            {/* PASSO 2: Tempo de Expiração */}
+                            {/* PASSO 2: Tempo */}
                             {step === 2 && (
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center mb-1">
@@ -324,7 +313,7 @@
                                 </div>
                             )}
 
-                            {/* PASSO 3: Carregamento ("Gotovim vash signal") */}
+                            {/* PASSO 3: Carregamento */}
                             {step === 3 && (
                                 <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
                                     <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin flex items-center justify-center">
@@ -335,7 +324,7 @@
                                 </div>
                             )}
 
-                            {/* PASSO 4: Resultado do Sinal com Ação Funcional nos Botões */}
+                            {/* PASSO 4: Resultado */}
                             {step === 4 && signalData && (
                                 <div className="space-y-2.5">
                                     <div className="flex justify-between items-center">
@@ -366,7 +355,6 @@
                                         </div>
                                     </div>
 
-                                    {/* Botões Funcionais que alimentam o Placar do Dashboard */}
                                     <div className="grid grid-cols-2 gap-2 pt-1">
                                         <button onClick={() => executeTradeAction('BUY')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3 rounded-xl text-xs shadow-lg transition-all">
                                             Comprar ▲ (Registrar)
@@ -385,8 +373,8 @@
                         <div className="space-y-3 text-xs">
                             <h2 className="text-lg font-extrabold text-white">📖 Manual de Operações</h2>
                             <div className="bg-[#182030] p-3 rounded-xl border border-slate-800 space-y-1">
-                                <h3 className="font-bold text-emerald-400 text-sm">Como usar os botões de Compra e Venda</h3>
-                                <p className="text-slate-300">Ao clicar em Comprar ou Vender após receber o sinal do robô, o aplicativo simula o resultado da sua ordem e computa automaticamente o placar de Vitórias (Win) ou Derrotas (Loss) no seu Dashboard principal.</p>
+                                <h3 className="font-bold text-emerald-400 text-sm">Placar Editável</h3>
+                                <p className="text-slate-300">Você pode ajustar manualmente os pontos de Win e Loss direto na aba Dashboard, ou usar os botões de Compra e Venda após receber os sinais para computar os resultados automaticamente.</p>
                             </div>
                         </div>
                     )}
