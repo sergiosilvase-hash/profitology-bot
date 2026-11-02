@@ -25,46 +25,55 @@
         { id: 'hezilex', name: 'Hezilex', icon: '🚀' },
         { id: 'quotex', name: 'Quotex', icon: '💎' },
         { id: 'deriv', name: 'Deriv', icon: '⚡' },
+        { id: 'pocket', name: 'Pocket Option', icon: '🪐' },
         { id: 'iqoption', name: 'IQ Option', icon: '🎯' }
     ];
 
     const MARKETS = {
+        HEZILEX_ATIVOS: [
+            { name: "Bitcoin", symbol: "BINANCE:BTCUSDT", payout: "82%" },
+            { name: "Litecoin", symbol: "BINANCE:LTCUSDT", payout: "82%" },
+            { name: "Cardano", symbol: "BINANCE:ADAUSDT", payout: "87%" },
+            { name: "BNB", symbol: "BINANCE:BNBUSDT", payout: "87%" },
+            { name: "XRP", symbol: "BINANCE:XRPUSDT", payout: "82%" },
+            { name: "Ethereum", symbol: "BINANCE:ETHUSDT", payout: "82%" },
+            { name: "Solana", symbol: "BINANCE:SOLUSDT", payout: "82%" },
+            { name: "AVAX", symbol: "BINANCE:AVAXUSDT", payout: "80%" },
+            { name: "DOGE", symbol: "BINANCE:DOGEUSDT", payout: "82%" },
+            { name: "SUI", symbol: "BINANCE:SUIUSDT", payout: "80%" },
+            { name: "Stellar", symbol: "BINANCE:XLMUSDT", payout: "80%" }
+        ],
         OTC: [
-            { name: "USD/CHF OTC", symbol: "FX:USDCHF", payout: "95%" },
-            { name: "EUR/USD OTC", symbol: "FX:EURUSD", payout: "92%" },
+            { name: "EUR/USD OTC", symbol: "FX:EURUSD", payout: "95%" },
             { name: "EUR/GBP OTC", symbol: "FX:EURGBP", payout: "91%" },
             { name: "GBP/USD OTC", symbol: "FX:GBPUSD", payout: "89%" },
-            { name: "AUD/CAD OTC", symbol: "FX:AUDCAD", payout: "85%" },
-            { name: "AUD/CHF OTC", symbol: "FX:AUDCHF", payout: "81%" }
+            { name: "USD/CHF OTC", symbol: "FX:USDCHF", payout: "92%" }
         ],
         CRYPTO: [
             { name: "Bitcoin (BTC)", symbol: "BINANCE:BTCUSDT", payout: "88%" },
-            { name: "Ethereum (ETH)", symbol: "BINANCE:ETHUSDT", payout: "85%" },
-            { name: "Cardano (ADA)", symbol: "BINANCE:ADAUSDT", payout: "87%" }
-        ],
-        STOCKS: [
-            { name: "Apple (AAPL)", symbol: "NASDAQ:AAPL", payout: "90%" },
-            { name: "Tesla (TSLA)", symbol: "NASDAQ:TSLA", payout: "89%" }
+            { name: "Ethereum (ETH)", symbol: "BINANCE:ETHUSDT", payout: "85%" }
         ]
     };
 
     function App() {
-        const [tab, setTab] = useState('sinais'); 
+        const [tab, setTab] = useState('dashboard'); // 'dashboard', 'sinais', 'treinamento', 'perfil'
         const [step, setStep] = useState(0); 
         const [selectedBroker, setSelectedBroker] = useState(BROKERS[0]);
-        const [selectedMarketType, setSelectedMarketType] = useState('OTC');
-        const [selectedPair, setSelectedPair] = useState(MARKETS.OTC[0]);
+        const [selectedMarketType, setSelectedMarketType] = useState('HEZILEX_ATIVOS');
+        const [selectedPair, setSelectedPair] = useState(MARKETS.HEZILEX_ATIVOS[0]);
         const [selectedTimeframe, setSelectedTimeframe] = useState('1'); 
         const [signalData, setSignalData] = useState(null);
         const [secondsLeft, setSecondsLeft] = useState(60);
+        const [tradeNotification, setTradeNotification] = useState(null);
         
+        // Placar Geral de Performance sincronizado com os botões de Compra/Venda
         const [stats, setStats] = useState({
-            day: { wins: 18, losses: 0 },
-            week: { wins: 64, losses: 4 },
-            month: { wins: 210, losses: 15 }
+            day: { wins: 12, losses: 1 },
+            week: { wins: 45, losses: 5 },
+            month: { wins: 180, losses: 14 }
         });
 
-        // Carregar TradingView no passo final
+        // Carregar TradingView no passo final do sinal
         useEffect(() => {
             if (step === 4 && tab === 'sinais') {
                 const containerId = "tradingview_widget_container";
@@ -78,7 +87,7 @@
                     script.innerHTML = JSON.stringify({
                         "width": "100%",
                         "height": "190",
-                        "symbol": selectedPair.symbol || "FX:USDCHF",
+                        "symbol": selectedPair.symbol || "BINANCE:BTCUSDT",
                         "interval": selectedTimeframe,
                         "timezone": "America/Sao_Paulo",
                         "theme": "dark",
@@ -107,27 +116,44 @@
             return `0${mins}:${secs < 10 ? '0' : ''}${secs}`;
         };
 
-        // Motor de Análise com Confluência Avançada (IA Simulation)
         const processSignal = (tf) => {
             setSelectedTimeframe(tf);
             setSecondsLeft(tf === '1' ? 60 : 300);
-            setStep(3); // Tela de carregamento "Gotovim vash signal[span_1](start_span)"[span_1](end_span)
+            setStep(3); // Tela de carregamento "Gotovim vash signal"
 
             setTimeout(() => {
-                // Simulação de cálculo baseado em hash do par + tempo para consistência técnica
-                const seed = selectedPair.name.length + parseInt(tf);
-                const isBuy = (seed % 2 === 0); 
-                
+                const isBuy = Math.random() > 0.45;
                 setSignalData({
                     type: isBuy ? 'BUY' : 'SELL',
                     text: isBuy ? 'COMPRAR (CALL)' : 'VENDER (PUT)',
-                    actionText: isBuy ? 'BUY' : 'SELL',
+                    actionText: isBuy ? 'COMPRAR (CALL)' : 'VENDER (PUT)',
                     color: isBuy ? 'bg-emerald-600' : 'bg-rose-600',
                     textColor: isBuy ? 'text-emerald-400' : 'text-rose-400',
                     accuracy: '98.5%'
                 });
-                setStep(4); // Tela de resultado final
-            }, 2200);
+                setStep(4); // Tela de resultado do sinal
+            }, 2000);
+        };
+
+        // Função que registra o resultado da operação nos botões de Compra/Venda e alimenta o Dashboard
+        const executeTradeAction = (actionType) => {
+            // Simula o resultado da operação (80% de chance de WIN seguindo a IA, ou aleatório simulado)
+            const isWin = Math.random() > 0.2; 
+            const resultKey = isWin ? 'wins' : 'losses';
+
+            setStats(prev => ({
+                ...prev,
+                day: { ...prev.day, [resultKey]: prev.day[resultKey] + 1 },
+                week: { ...prev.week, [resultKey]: prev.week[resultKey] + 1 },
+                month: { ...prev.month, [resultKey]: prev.month[resultKey] + 1 }
+            }));
+
+            setTradeNotification({
+                message: isWin ? '🟢 Operação Finalizada: WIN (+ Lucro registrado no Dashboard)!' : '🔴 Operação Finalizada: LOSS (Registrado no Dashboard).',
+                isWin: isWin
+            });
+
+            setTimeout(() => setTradeNotification(null), 4000);
         };
 
         const updateScore = (period, type, delta) => {
@@ -159,19 +185,26 @@
                         <span className="bg-slate-800 text-xs text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-slate-700 flex items-center gap-1">
                             {selectedBroker.icon} {selectedBroker.name}
                         </span>
-                        <span className="bg-slate-800 text-xs text-slate-300 px-2 py-0.5 rounded font-semibold border border-slate-700">🇷🇺 RU</span>
+                        <span className="bg-slate-800 text-xs text-slate-300 px-2.5 py-1 rounded-lg font-semibold border border-slate-700">🇧🇷 PT</span>
                     </div>
                 </div>
+
+                {/* Notificação flutuante de resultado da ordem */}
+                {tradeNotification && (
+                    <div className={`absolute top-14 left-4 right-4 z-50 p-3 rounded-xl text-xs font-bold text-center shadow-xl border ${tradeNotification.isWin ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500' : 'bg-rose-950/90 text-rose-300 border-rose-500'}`}>
+                        {tradeNotification.message}
+                    </div>
+                )}
 
                 {/* Conteúdo */}
                 <div className="p-3 flex-1 overflow-y-auto">
 
-                    {/* DASHBOARD */}
+                    {/* DASHBOARD PRINCIPAL */}
                     {tab === 'dashboard' && (
                         <div className="space-y-4">
                             <div>
                                 <h2 className="text-lg font-extrabold text-white">Dashboard Geral de Performance</h2>
-                                <p className="text-xs text-slate-400">Controle de Win e Loss por linha do tempo.</p>
+                                <p className="text-xs text-slate-400">Acompanhamento consolidado de Win e Loss (atualizado automaticamente pelos sinais).</p>
                             </div>
 
                             <div className="bg-[#141b2d] p-4 rounded-xl border border-slate-800 space-y-3">
@@ -186,18 +219,18 @@
                                         <span className="text-xl font-extrabold text-rose-400">{stats.day.losses}</span>
                                     </div>
                                     <div className="bg-slate-900 border border-slate-800 p-2.5 rounded-xl">
-                                        <span className="text-[10px] text-cyan-400 font-bold block">ACERTO</span>
+                                        <span className="text-[10px] text-cyan-400 font-bold block">ASSERTIVIDADE</span>
                                         <span className="text-xl font-extrabold text-cyan-400">{calcRate(stats.day.wins, stats.day.losses)}</span>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="bg-[#141b2d] p-3.5 rounded-xl border border-slate-800 space-y-3">
-                                <span className="text-xs font-bold text-slate-300 block border-b border-slate-800 pb-2">Gerenciar Placar Manualmente</span>
+                                <span className="text-xs font-bold text-slate-300 block border-b border-slate-800 pb-2">Gerenciar Placar por Linha do Tempo</span>
                                 {['day', 'week', 'month'].map((period) => (
                                     <div key={period} className="flex justify-between items-center bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
                                         <div>
-                                            <span className="text-xs font-bold text-white capitalize">{period === 'day' ? 'Hoje' : period === 'week' ? 'Semana' : 'Mês'}</span>
+                                            <span className="text-xs font-bold text-white capitalize">{period === 'day' ? 'Hoje' : period === 'week' ? 'Esta Semana' : 'Este Mês'}</span>
                                             <span className="text-[10px] text-slate-400 block">{stats[period].wins}W • {stats[period].losses}L</span>
                                         </div>
                                         <div className="flex space-x-1">
@@ -215,31 +248,43 @@
                     {/* ABA SINAIS */}
                     {tab === 'sinais' && (
                         <div>
-                            {/* PASSO 0: Mercado */}
+                            {/* PASSO 0: Seleção de Mercado */}
                             {step === 0 && (
                                 <div className="space-y-3">
-                                    <h2 className="text-base font-extrabold text-white">Выбор рынка (Escolher Mercado)</h2>
+                                    <h2 className="text-base font-extrabold text-white">Escolha o Mercado</h2>
                                     <div className="grid grid-cols-2 gap-2.5">
-                                        <div onClick={() => { setSelectedMarketType('OTC'); setStep(1); }} className="bg-[#182030] p-4 rounded-xl border border-slate-700 cursor-pointer hover:border-emerald-500 transition-all">
-                                            <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Доступно</span>
-                                            <h3 className="font-bold text-sm text-white mt-2">OTC</h3>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">Pares OTC para sessões de balcão.</p>
+                                        <div onClick={() => { setSelectedMarketType('HEZILEX_ATIVOS'); setStep(1); }} className="bg-[#182030] p-4 rounded-xl border border-slate-700 cursor-pointer hover:border-emerald-500 transition-all">
+                                            <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Recomendado</span>
+                                            <h3 className="font-bold text-sm text-white mt-2">Ativos Hezilex</h3>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">Criptos e pares exclusivos.</p>
                                         </div>
-                                        <div onClick={() => { setSelectedMarketType('CRYPTO'); setStep(1); }} className="bg-[#182030] p-4 rounded-xl border border-slate-700 cursor-pointer hover:border-emerald-500 transition-all">
-                                            <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold">24/7</span>
-                                            <h3 className="font-bold text-sm text-white mt-2">Крипта</h3>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">Criptomoedas com payout atual.</p>
+                                        <div onClick={() => { setSelectedMarketType('OTC'); setStep(1); }} className="bg-[#182030] p-4 rounded-xl border border-slate-700 cursor-pointer hover:border-emerald-500 transition-all">
+                                            <span className="text-[9px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded font-bold">24/7</span>
+                                            <h3 className="font-bold text-sm text-white mt-2">Mercado OTC</h3>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">Pares OTC de alta liquidez.</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Seletor rápido de Corretora */}
+                                    <div className="pt-2">
+                                        <span className="text-xs font-bold text-slate-400 block mb-2">Corretora Conectada:</span>
+                                        <div className="grid grid-cols-3 gap-1.5">
+                                            {BROKERS.map(b => (
+                                                <button key={b.id} onClick={() => setSelectedBroker(b)} className={`p-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1 ${selectedBroker.id === b.id ? 'bg-emerald-500 text-black border-emerald-400' : 'bg-[#182030] text-slate-300 border-slate-700'}`}>
+                                                    <span>{b.icon}</span> {b.name}
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* PASSO 1: Ativos[span_2](start_span)[span_2](end_span) */}
+                            {/* PASSO 1: Seleção de Ativos */}
                             {step === 1 && (
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center mb-1">
-                                        <h2 className="text-base font-extrabold text-white">Выбор валютной пары</h2>
-                                        <button onClick={() => setStep(0)} className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-300">Назад</button>
+                                        <h2 className="text-base font-extrabold text-white">Escolha o Ativo</h2>
+                                        <button onClick={() => setStep(0)} className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-300">Voltar</button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 max-h-[320px] overflow-y-auto">
                                         {(MARKETS[selectedMarketType] || []).map((p, i) => (
@@ -252,45 +297,45 @@
                                 </div>
                             )}
 
-                            {/* PASSO 2: Tempo[span_3](start_span)[span_3](end_span) */}
+                            {/* PASSO 2: Tempo de Expiração */}
                             {step === 2 && (
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center mb-1">
                                         <div>
                                             <span className="text-[10px] text-emerald-400 font-bold uppercase">{selectedPair.name}</span>
-                                            <h2 className="text-base font-extrabold text-white">Время экспирации</h2>
+                                            <h2 className="text-base font-extrabold text-white">Tempo de Expiração</h2>
                                         </div>
-                                        <button onClick={() => setStep(1)} className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-300">Назад</button>
+                                        <button onClick={() => setStep(1)} className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-300">Voltar</button>
                                     </div>
-                                    <p className="text-xs text-slate-400">Выберите, на сколько минут анализировать рынок для этого сигнала.</p>
+                                    <p className="text-xs text-slate-400">Selecione em quantos minutos deseja analisar o mercado.</p>
                                     
                                     <div className="grid grid-cols-2 gap-2.5 pt-1">
                                         {[
-                                            { label: '1 мин', val: '1' },
-                                            { label: '3 мин', val: '3' },
-                                            { label: '5 мин', val: '5' },
-                                            { label: '15 мин', val: '15' }
+                                            { label: '1 Minuto', val: '1' },
+                                            { label: '3 Minutos', val: '3' },
+                                            { label: '5 Minutos', val: '5' },
+                                            { label: '15 Minutos', val: '15' }
                                         ].map((tf, i) => (
                                             <button key={i} onClick={() => processSignal(tf.val)} className="bg-[#182030] hover:border-emerald-500 p-4 rounded-xl border border-slate-700 text-center cursor-pointer transition-all">
-                                                <span className="text-lg font-extrabold text-white block">{tf.label}</span>
+                                                <span className="text-base font-extrabold text-white block">{tf.label}</span>
                                             </button>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* PASSO 3: Carregamento[span_4](start_span)[span_4](end_span) */}
+                            {/* PASSO 3: Carregamento ("Gotovim vash signal") */}
                             {step === 3 && (
                                 <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
                                     <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin flex items-center justify-center">
                                         <span className="text-xs">📊</span>
                                     </div>
-                                    <h2 className="text-base font-extrabold text-white">Готовим ваш сигнал</h2>
-                                    <p className="text-xs text-slate-400 max-w-[240px]">Получаем рыночные данные и проверяем выбранную настройку.</p>
+                                    <h2 className="text-base font-extrabold text-white">Preparando seu sinal...</h2>
+                                    <p className="text-xs text-slate-400 max-w-[240px]">Obtendo dados de mercado em tempo real e verificando confluências.</p>
                                 </div>
                             )}
 
-                            {/* PASSO 4: Resultado */}
+                            {/* PASSO 4: Resultado do Sinal com Ação Funcional nos Botões */}
                             {step === 4 && signalData && (
                                 <div className="space-y-2.5">
                                     <div className="flex justify-between items-center">
@@ -303,8 +348,8 @@
                                     </div>
 
                                     <div className={`p-4 rounded-2xl border border-slate-700 text-center ${signalData.color} bg-opacity-20 relative overflow-hidden`}>
-                                        <span className="text-[10px] text-slate-300 uppercase font-bold tracking-widest block">Ваш сигнал (Seu Sinal)</span>
-                                        <h1 className={`text-2xl font-black tracking-wider my-1 ${signalData.textColor}`}>{signalData.actionText}</h1>
+                                        <span className="text-[10px] text-slate-300 uppercase font-bold tracking-widest block">Recomendação do Robô</span>
+                                        <h1 className={`text-2xl font-black tracking-wider my-1 ${signalData.textColor}`}>{signalData.text}</h1>
                                         <div className="flex justify-center items-center gap-1 text-xs text-slate-200">
                                             <span>Confluência de IA Ativa</span>
                                         </div>
@@ -312,21 +357,22 @@
 
                                     <div className="grid grid-cols-2 gap-2 text-center">
                                         <div className="bg-[#141b2d] p-2 rounded-xl border border-slate-800">
-                                            <span className="text-[9px] text-slate-400 block uppercase font-bold">Осталось (Tempo)</span>
+                                            <span className="text-[9px] text-slate-400 block uppercase font-bold">Tempo Restante</span>
                                             <span className="text-sm font-mono font-bold text-cyan-400">{formatTime(secondsLeft)}</span>
                                         </div>
                                         <div className="bg-[#141b2d] p-2 rounded-xl border border-slate-800">
-                                            <span className="text-[9px] text-slate-400 block uppercase font-bold">Вероятность (Assertividade)</span>
+                                            <span className="text-[9px] text-slate-400 block uppercase font-bold">Assertividade</span>
                                             <span className="text-sm font-extrabold text-emerald-400">{signalData.accuracy}</span>
                                         </div>
                                     </div>
 
+                                    {/* Botões Funcionais que alimentam o Placar do Dashboard */}
                                     <div className="grid grid-cols-2 gap-2 pt-1">
-                                        <button onClick={() => alert("Ordem de Compra executada!")} className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-lg">
-                                            Comprar ▲
+                                        <button onClick={() => executeTradeAction('BUY')} className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3 rounded-xl text-xs shadow-lg transition-all">
+                                            Comprar ▲ (Registrar)
                                         </button>
-                                        <button onClick={() => alert("Ordem de Venda executada!")} className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-2.5 rounded-xl text-xs shadow-lg">
-                                            Vender ▼
+                                        <button onClick={() => executeTradeAction('SELL')} className="bg-rose-600 hover:bg-rose-500 text-white font-extrabold py-3 rounded-xl text-xs shadow-lg transition-all">
+                                            Vender ▼ (Registrar)
                                         </button>
                                     </div>
                                 </div>
@@ -339,8 +385,8 @@
                         <div className="space-y-3 text-xs">
                             <h2 className="text-lg font-extrabold text-white">📖 Manual de Operações</h2>
                             <div className="bg-[#182030] p-3 rounded-xl border border-slate-800 space-y-1">
-                                <h3 className="font-bold text-emerald-400 text-sm">Motor Híbrido de IA</h3>
-                                <p className="text-slate-300">O sistema agora valida a direção do ativo cruzando dados de momento e volatilidade durante a tela de carregamento.</p>
+                                <h3 className="font-bold text-emerald-400 text-sm">Como usar os botões de Compra e Venda</h3>
+                                <p className="text-slate-300">Ao clicar em Comprar ou Vender após receber o sinal do robô, o aplicativo simula o resultado da sua ordem e computa automaticamente o placar de Vitórias (Win) ou Derrotas (Loss) no seu Dashboard principal.</p>
                             </div>
                         </div>
                     )}
@@ -351,7 +397,7 @@
                             <h2 className="text-lg font-extrabold text-white">Perfil do Trader</h2>
                             <div className="bg-[#182030] p-3.5 rounded-xl border border-slate-800 text-xs space-y-2">
                                 <div className="flex justify-between"><span className="text-slate-400">Status:</span><span className="text-emerald-400 font-bold">VIP PRO</span></div>
-                                <div className="flex justify-between"><span className="text-slate-400">Corretora:</span><span className="text-white font-bold">{selectedBroker.name}</span></div>
+                                <div className="flex justify-between"><span className="text-slate-400">Corretora Conectada:</span><span className="text-white font-bold">{selectedBroker.name}</span></div>
                             </div>
                         </div>
                     )}
